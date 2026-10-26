@@ -1,10 +1,22 @@
-"""BiRefNet: the model suggested in the brief (https://huggingface.co/ZhengPeng7/BiRefNet).
+"""BiRefNet and the two models built on the same network.
 
-BiRefNet ("Bilateral Reference Network") is trained for high-resolution
-dichotomous segmentation: it decides, for every pixel, whether it belongs to the
-main subject. It works on both people and products and is MIT licensed.
+BiRefNet ("Bilateral Reference Network", https://huggingface.co/ZhengPeng7/BiRefNet)
+decides, for every pixel, whether it belongs to the main subject. It looks at
+the image twice: once small, to understand the whole scene ("this is a
+person"), and once at full detail, to place the edges precisely.
 
-How one prediction works:
+Three of our five models use this exact network and differ only in the
+weights, i.e. what they were trained on. Their config.json files all declare
+the same "BiRefNet" architecture, so this one class serves all three:
+
+    variant            folder              trained on                     license
+    birefnet           models/birefnet/    general subjects (DIS5K, ...)  MIT
+    birefnet-matting   models/birefnet-    matting data: soft, partly     MIT
+                       matting/            transparent edges (hair)
+    rmbg-2.0           models/rmbg-2.0/    BRIA's licensed product and    non-commercial
+                                           people photos
+
+How one prediction works (same for all three):
 
     RGB image (any size)
       -> resize to 1024x1024 and normalise like ImageNet  (what the model was trained on)
@@ -21,6 +33,7 @@ import torch.nn.functional as F
 from PIL import Image
 
 from bgchange.device import pick_device, pick_dtype
+from bgchange.paths import model_dir
 from bgchange.segmenters.base import Segmenter
 
 # Mean / std of the ImageNet dataset. BiRefNet's backbone was trained on images
@@ -28,48 +41,49 @@ from bgchange.segmenters.base import Segmenter
 _IMAGENET_MEAN = (0.485, 0.456, 0.406)
 _IMAGENET_STD = (0.229, 0.224, 0.225)
 
-# Exact Hub commit of ZhengPeng7/BiRefNet that was tested. Pinning it means the
-# model's Python code (executed via trust_remote_code) and weights cannot change
-# underneath us if the repository is updated later.
-_BIREFNET_REVISION = "e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4"
+#: The variants this class can load. Each is a folder name under models/.
+VARIANTS = ("birefnet", "birefnet-matting", "rmbg-2.0")
 
 
 class BiRefNetSegmenter(Segmenter):
-    """Segmenter backed by a BiRefNet checkpoint from the Hugging Face Hub."""
+    """Segmenter for any BiRefNet-architecture model in models/<variant>/."""
 
-    name = "birefnet"
-
-    def __init__(
-        self,
-        repo_id: str = "ZhengPeng7/BiRefNet",
-        revision: str | None = _BIREFNET_REVISION,
-        input_size: int = 1024,
-        device: str = "auto",
-    ) -> None:
-        """Download (first time only) and load the model.
+    def __init__(self, variant: str = "birefnet", input_size: int = 1024, device: str = "auto") -> None:
+        """Load the model from its local folder onto the GPU (or CPU).
 
         Args:
-            repo_id: Hugging Face repository holding the weights. Other BiRefNet
-                variants (e.g. the matting one) reuse this class with another id.
-            revision: Hub commit to load; pinned by default (see _BIREFNET_REVISION).
-            input_size: side length the image is resized to. 1024 is what the
-                general model was trained at.
+            variant: one of VARIANTS, i.e. which weights to load.
+            input_size: side length the image is resized to. All three variants
+                were trained at 1024.
             device: "auto", "cuda" or "cpu".
+
+        Raises:
+            ValueError: unknown variant.
+            FileNotFoundError: the model was not downloaded yet (the message
+                gives the download command).
         """
+        if variant not in VARIANTS:
+            raise ValueError(f"Unknown BiRefNet variant '{variant}'. Choose from {VARIANTS}.")
+
         # Imported here so that `import bgchange` stays fast and does not need
         # transformers unless a model is actually used.
         from transformers import AutoModelForImageSegmentation
 
+        self.name = variant
         self.input_size = input_size
         self.device = pick_device(device)
         self.dtype = pick_dtype(self.device)
 
-        # trust_remote_code=True: BiRefNet's architecture is defined by Python
-        # code stored in its Hub repository, not inside transformers itself.
-        # That code is executed locally, which is why the repo id and revision
-        # are fixed here and not taken from user input.
+        # Load from the local folder, not from the internet. The folder was
+        # filled by scripts/download_models.py at a pinned commit, so the
+        # weights and code are exactly the ones that were tested.
+        #
+        # trust_remote_code=True: the network is defined by birefnet.py inside
+        # that folder, not by transformers itself, and that file is executed.
+        # It is safe here because it is the pinned file we downloaded, and the
+        # folder name comes from VARIANTS, never from user input.
         model = AutoModelForImageSegmentation.from_pretrained(
-            repo_id, revision=revision, trust_remote_code=True
+            model_dir(variant), trust_remote_code=True
         )
         self.model = model.to(self.device, dtype=self.dtype).eval()
 

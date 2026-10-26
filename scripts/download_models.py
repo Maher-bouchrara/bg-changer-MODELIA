@@ -28,7 +28,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
-MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
+# Shared with the loading code, so both always agree on where models live.
+from bgchange.paths import MODELS_DIR
 
 
 @dataclass(frozen=True)
