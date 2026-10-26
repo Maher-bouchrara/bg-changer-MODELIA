@@ -84,44 +84,82 @@ choose**, and **why**.
 
 ### 3.1 Input handling
 
-🚧 *Implemented in step 3.*
+✅ *[`bgchange/io.py`](bgchange/io.py), 16 tests in [`tests/test_io.py`](tests/test_io.py).*
 
 **Problem.** Real photos are messier than they look. A phone photo is often
 stored sideways, with a tag (EXIF) telling viewers to rotate it. Files can be
-greyscale, CMYK (print), 16-bit, or already have transparency.
+greyscale, CMYK (print), 16-bit, carry a colour profile, or already have
+transparency.
 
-**Plan.**
+**What `load_image()` does.** It takes a file path (CLI) or raw bytes (API) and
+always returns the same thing: an upright, 8-bit sRGB image.
 
 ```mermaid
-flowchart LR
-    A["Any file"] --> B{"EXIF rotation tag?"}
-    B -- yes --> C["Rotate pixels upright"]
-    B -- no --> D
-    C --> D{"Colour mode?"}
-    D -- "RGB" --> F["RGB image"]
-    D -- "L / CMYK / 16-bit / P" --> E["Convert to RGB"] --> F
-    D -- "RGBA" --> G["Keep existing alpha as a hint,<br/>flatten to RGB"] --> F
+flowchart TB
+    A["File path or uploaded bytes"] --> V{"1. A real image?<br/>Under 50 MP?"}
+    V -- no --> ERR["Clear error message"]
+    V -- yes --> R{"2. EXIF rotation tag?"}
+    R -- yes --> R2["Rotate pixels upright"] --> S
+    R -- no --> S{"3. Has transparency?"}
+    S -- yes --> S2["Keep it as an alpha hint"] --> C
+    S -- no --> C{"4. Colour format?"}
+    C -- "16-bit grey" --> C1["Scale to 8-bit"] --> OUT
+    C -- "ICC profile (P3, CMYK…)" --> C2["Convert to sRGB"] --> OUT
+    C -- "CMYK / grey / palette" --> C3["Convert to RGB"] --> OUT
+    C -- "RGB" --> OUT["LoadedImage<br/>8-bit sRGB + alpha hint + notes"]
 ```
 
-**Why.** Skipping the EXIF step would give a correctly cut-out subject lying on
-its side. Everything downstream assumes a plain 8-bit RGB image, so this step
-is the single place that guarantees it.
+| Hard case | What would go wrong without it | Fix |
+|---|---|---|
+| Phone photo with EXIF rotation | Subject processed and returned lying on its side | Rotate the pixels, drop the tag |
+| 16-bit greyscale PNG | Pillow's `convert("L")` *clips* instead of scaling, so mid-grey becomes white | Scale by hand (÷257) |
+| iPhone photo (Display-P3) | Colours read as sRGB look washed out | Convert with the embedded ICC profile |
+| CMYK print JPEG | Model expects RGB | Use the ICC profile if present, else Pillow's formula |
+| PNG already partly transparent | That information would be lost | Kept as an *alpha hint* for compositing |
+| Animated GIF / multi-page TIFF | Ambiguous input | First frame, with a note |
+| Not an image, truncated download | Crash with a Python traceback | One clear error message |
+| 20,000 × 20,000 image, decompression bomb | Freezes the machine | Refused **before** decoding (limit 50 MP) |
+| Broken colour profile | Good photo rejected | Profile ignored, with a note |
+
+**Design choices.**
+- **Nothing happens silently.** Every fix adds a line to `notes`, and the CLI and
+  API show them, so a user can see *why* the output looks the way it does.
+- **Transparency is removed before colour conversion**, because colour profiles
+  apply to colour channels only.
+- **All test images are generated in code.** No binary test files in the repo,
+  and each test triggers exactly one problem.
 
 ### 3.2 Hex colour parsing
 
-🚧 *Implemented in step 3.*
+✅ *[`bgchange/color.py`](bgchange/color.py), 27 tests in [`tests/test_color.py`](tests/test_color.py).*
 
-**Plan.** Accept the formats people actually type, reject everything else with
-a clear message.
+**What `parse_hex_color()` does.** It accepts the formats people actually type
+and rejects everything else with a message that says what to type instead.
+
+```mermaid
+flowchart LR
+    T["' #ff0066 '"] --> A["Trim spaces"] --> B["Strip optional #"]
+    B --> C{"Hex digits only?<br/>Length 3, 4, 6, 8?"}
+    C -- no --> E["Error naming the<br/>accepted formats"]
+    C -- "3 or 4" --> D["Expand short form<br/>F06 → FF0066"] --> F
+    C -- "6 or 8" --> F["Read pairs as numbers"]
+    F --> O["Color(r=255, g=0, b=102, a=255)"]
+```
 
 | Input | Meaning | Result |
 |---|---|---|
-| `#F06` | short form | `(255, 0, 102)` |
-| `#FF0066` | standard | `(255, 0, 102)` |
-| `FF0066` | no `#` | accepted |
-| `#FF006680` | with alpha | 50 % transparent background → PNG with transparency |
+| `#FF0066`, `#ff0066`, `FF0066`, `" #FF0066 "` | standard, any case, `#` optional | `(255, 0, 102)` solid |
+| `#F06` | short form | `(255, 0, 102)` solid |
+| `#FF006680` / `#F068` | with alpha | semi-transparent background → PNG with transparency |
 | `#00000000` | fully transparent | a plain cut-out |
-| `red`, `#GG0000` | invalid | error explaining the accepted formats |
+| `red`, `#GG0000`, `#FF006`, empty | invalid | error listing the accepted formats |
+
+**Design choices.**
+- **No colour names** (`red`, `navy`). The brief asks for hex, and one strict
+  format is easier to test and explain.
+- **Known trap: `#FF00` is not a typo error.** It's a valid `#RGBA` short form,
+  which means *fully transparent yellow*. It follows the CSS standard, so it is
+  accepted, and a test pins down this behaviour.
 
 ### 3.3 Segmentation models
 
@@ -266,13 +304,19 @@ Each step is one or more small commits.
 
 - [x] **1. Repo baseline**: structure, README plan, notes
 - [x] **2. Python env + GPU check + first model (BiRefNet)**
-- [ ] **3. Input handling + hex parsing** (with tests)
+- [x] **3. Input handling + hex parsing** (43 tests)
 - [ ] **4. Model registry + the other 4 models**
 
 > **Why the model comes before input handling.** Getting PyTorch to run on a
 > brand-new GPU and loading the model is the riskiest part, so it is done first
 > to surface problems early. Input handling and hex parsing are plain Python and
-> low risk. Until step 3 lands, the model step uses a 3-line temporary loader.
+> low risk.
+
+Run the tests (no GPU or downloads needed):
+
+```bash
+uv run pytest
+```
 - [ ] **5. Benchmark** → pick the default model
 - [ ] **6. Edge cleanup + compositing** → first full CLI result
 - [ ] **7. Shadow extraction**

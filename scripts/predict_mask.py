@@ -3,8 +3,8 @@
 Run:  uv run python scripts/predict_mask.py photo.jpg -o outputs/photo_mask.png
 
 This is a temporary script used to check the model before the real CLI exists.
-The image loading below is deliberately minimal; proper input handling
-(bgchange/io.py) replaces it in the next step.
+It loads the photo with the same loader as the real pipeline (bgchange/io.py),
+so EXIF rotation, CMYK, 16-bit files etc. are handled here too.
 """
 
 import argparse
@@ -13,8 +13,9 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from PIL import Image, ImageOps
+from PIL import Image
 
+from bgchange.io import ImageLoadError, load_image
 from bgchange.segmenters import BiRefNetSegmenter
 
 
@@ -28,9 +29,14 @@ def main() -> None:
     output = args.output or Path("outputs") / f"{args.image.stem}_mask.png"
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    # Minimal loading: rotate upright using the EXIF tag, force RGB.
-    image = ImageOps.exif_transpose(Image.open(args.image)).convert("RGB")
+    try:
+        loaded = load_image(args.image)
+    except ImageLoadError as error:
+        raise SystemExit(f"error  : {error}") from None
+    image = loaded.rgb
     print(f"image  : {args.image} ({image.width}x{image.height})")
+    for note in loaded.notes:  # every fix the loader applied, e.g. EXIF rotation
+        print(f"  note : {note}")
 
     start = time.perf_counter()
     segmenter = BiRefNetSegmenter(device=args.device)

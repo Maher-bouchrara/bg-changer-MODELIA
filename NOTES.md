@@ -12,7 +12,9 @@ Kept honest and short; the polished version of the decisions lives in the README
 
 | 2026-10-26 | 0.5 | Checked each model's license, gating and files; download script; downloaded all 5 models |
 
-**Total so far:** 2.0 h
+| 2026-10-26 | 1.0 | Step 3: image loader and hex parser, 43 tests, README sections 3.1 and 3.2 |
+
+**Total so far:** 3.0 h
 
 ## Decisions in progress
 
@@ -26,6 +28,10 @@ Kept honest and short; the polished version of the decisions lives in the README
   The same goes for RMBG-2.0: 5.4 GB in the repo, 885 MB needed.
 - **InSPyReNet comes from a GitHub release**, not Hugging Face. The script verifies its MD5 checksum.
 - **RMBG-2.0 is gated.** I accepted BRIA's terms and logged in to Hugging Face myself.
+- **Two input files, `io.py` and `color.py`.** The two inputs are independent and change for
+  different reasons. Considered merging them into one `inputs.py`, but kept them separate.
+- **A test caught a wrong assumption.** I first listed `#FF00` as invalid, but it is valid
+  `#RGBA` (transparent yellow). The test is now pinned and the README warns about it.
 - **fp16 on GPU.** Peak VRAM is 1.6 GB, far under the 8 GB available, which leaves room to try
   larger input sizes later.
 
