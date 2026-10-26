@@ -184,57 +184,108 @@ flowchart LR
 
 ### 3.3 Segmentation models
 
-🚧 *BiRefNet in step 2, the other models in step 4, the default chosen by the benchmark in step 5.*
+✅ *All 5 models run. [`bgchange/segmenters/`](bgchange/segmenters/), 6 registry tests in
+[`tests/segmenters/`](tests/segmenters/). The default is provisional until the benchmark (step 5).*
 
 **What a model does here.** Image in, alpha matte out. Nothing else.
 
 ```
- photo                alpha matte (white = subject)
- ┌──────────┐         ┌──────────┐
- │  🧍 on    │  model  │  ⬜ on    │
- │  street  │ ──────► │  ⬛ black │
- └──────────┘         └──────────┘
+ photo                       alpha matte (white = subject)
+ +--------------+            +--------------+
+ |  person on   |   model    |  white shape |
+ |  a street    | ---------> |  on black    |
+ +--------------+            +--------------+
 ```
 
-**Plan.** All models sit behind one small interface, so you choose with
-`--model <name>` and the rest of the pipeline never changes.
+**Downloaded is not the same as usable.** `models/` holds the weights (files).
+To use them, code must build the network, fill it with the weights, prepare
+each photo the way that model expects and convert its output to a 0–1 matte.
+Each model does this differently, so each has a small adapter. All adapters
+follow one rule, `predict(image) -> alpha`, and the registry picks one by name.
 
 ```mermaid
 flowchart LR
-    P["Pipeline"] --> I["Segmenter interface<br/>predict(image) -> alpha"]
-    I --> M1["BiRefNet"]
-    I --> M2["BiRefNet-matting"]
-    I --> M3["RMBG-2.0"]
-    I --> M4["BEN2"]
-    I --> M5["InSPyReNet"]
+    subgraph disk["models/ (weights)"]
+        W1["birefnet/"]
+        W2["birefnet-matting/"]
+        W3["rmbg-2.0/"]
+        W4["ben2/"]
+        W5["inspyrenet/"]
+    end
+    subgraph code["bgchange/segmenters/ (code)"]
+        A1["birefnet.py<br/>3 models, 1 network"]
+        A2["ben2.py"]
+        A3["inspyrenet.py"]
+        R["registry.py<br/>get_segmenter(name)<br/>one model on GPU at a time"]
+    end
+    W1 --> A1
+    W2 --> A1
+    W3 --> A1
+    W4 --> A2
+    W5 --> A3
+    A1 --> R
+    A2 --> R
+    A3 --> R
+    R --> P["Pipeline:<br/>predict(image) → alpha"]
 ```
 
-| Model | Why it is in the list | License |
-|---|---|---|
-| BiRefNet (general) | Suggested in the brief; strong open state of the art | MIT |
-| BiRefNet-matting | Same family, trained for soft edges (hair) | MIT |
-| RMBG-2.0 (BRIA) | Very strong on products | **Non-commercial**: benchmarked, not shipped as default |
-| BEN2 | Strong on hair and fine edges | 🚧 to verify |
-| InSPyReNet | Strong at high resolution | MIT |
+```
+bgchange/segmenters/
+├── base.py         the rule: predict(image) -> alpha
+├── birefnet.py     BiRefNet, BiRefNet-matting, RMBG-2.0 (same network, different training)
+├── ben2.py         BEN2
+├── inspyrenet.py   InSPyReNet
+└── registry.py     get_segmenter("ben2"); unloads the previous model first
+```
 
-Only one model is loaded on the GPU at a time, so 8 GB of VRAM is enough.
-Weights are downloaded on first use into a cache and never committed.
+| Model | How it works | Trained on / strength | License |
+|---|---|---|---|
+| `birefnet` | Looks twice: whole scene small + full detail | General subjects; suggested in the brief | MIT |
+| `birefnet-matting` | Same network as above | Matting data: soft, partly transparent edges (hair) | MIT |
+| `rmbg-2.0` | Same network as above (its config declares BiRefNet) | BRIA's 15k hand-labelled, licensed images; products | **CC BY-NC 4.0, non-commercial**: benchmarked, never the default |
+| `ben2` | 4 zoomed tiles + 1 overview, merged | Fine edges | MIT |
+| `inspyrenet` | Rough mask first, then adds edge detail level by level | High-resolution images | MIT |
 
-**Pinned versions.** BiRefNet's architecture is Python code stored in its
-Hugging Face repo and executed locally (`trust_remote_code`). The code is pinned
-to the exact Hub commit that was tested, so an upstream change cannot silently
-alter results or run unreviewed code.
+**Smoke test** ([`scripts/check_models.py`](scripts/check_models.py), RTX 5050 Laptop):
 
-**First measurements (BiRefNet, RTX 5050 Laptop, fp16, 1024×1024 input):**
+| Model | Mask on test disc | Load (cached) | Per image | Peak VRAM | Blank grey image: max / mean |
+|---|---|---|---|---|---|
+| birefnet | OK | 2–15 s | 0.36 s | 1.58 GB | 0.00 / 0.00 |
+| birefnet-matting | OK | 2.6 s | 0.37 s | 1.58 GB | 0.74 / 0.32 |
+| rmbg-2.0 | OK | 2.3 s | 0.37 s | 1.58 GB | 1.00 / **0.95** |
+| ben2 | OK | 1.8 s | 0.47 s | 2.35 GB | 0.99 / 0.04 |
+| inspyrenet | OK | 1.8 s | 0.37 s | 3.10 GB | 0.00 / 0.00 |
 
-| | Value |
-|---|---|
-| Load from cache | ~9 s (first download ~3 min) |
-| First prediction (GPU warm-up) | ~1.3 s |
-| Following predictions | **~0.35 s** |
-| Peak VRAM | **1.6 GB** |
+The "blank grey image" column asks: with no subject at all, does the model
+invent one? RMBG-2.0 calls almost the whole grey image "subject". A blank image
+is ambiguous (a grey card could be the product), so this is a lead for the
+benchmark, not a verdict.
 
-Check your own machine:
+```bash
+uv run python scripts/check_models.py
+```
+
+**Decisions and problems found while wiring the models.**
+- **Weights load from `models/`, pinned.** No hidden cache, no internet at
+  runtime. BiRefNet-family code runs via `trust_remote_code`, which is safe here
+  because it's the pinned file we downloaded and the folder name never comes
+  from user input.
+- **BEN2 and InSPyReNet both stretch their masks min-to-max** in their own
+  helpers, which turns an unsure prediction into a confident-looking one. Both
+  adapters skip that step and return the model's real probabilities.
+- **BEN2's code changes global PyTorch settings on import** (random seeds and
+  matmul precision "highest"). The adapter restores the precision so the other
+  models don't slow down.
+- **InSPyReNet gives NaN masks in fp16**, because some internal values are too
+  large for half precision. It runs in fp32, which costs it the most VRAM.
+- **InSPyReNet's package would install 24 extra packages**, including a second
+  OpenCV that clashes with ours. `pyproject.toml` declares its dependencies as
+  empty, and the adapter imports only the network files, never the package's
+  GUI or tools.
+- **Safer weight formats:** `.safetensors` where available (cannot run code),
+  and `torch.load(weights_only=True)` for InSPyReNet's `.pth`.
+
+Check your own GPU, or get the mask of one photo:
 
 ```bash
 uv run python scripts/check_gpu.py
@@ -326,7 +377,7 @@ Each step is one or more small commits.
 - [x] **1. Repo baseline**: structure, README plan, notes
 - [x] **2. Python env + GPU check + first model (BiRefNet)**
 - [x] **3. Input handling + hex parsing** (48 tests)
-- [ ] **4. Model registry + the other 4 models**
+- [x] **4. Model registry + the other 4 models**
 
 > **Why the model comes before input handling.** Getting PyTorch to run on a
 > brand-new GPU and loading the model is the riskiest part, so it is done first

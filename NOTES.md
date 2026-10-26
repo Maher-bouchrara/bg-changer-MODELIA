@@ -14,7 +14,10 @@ Kept honest and short; the polished version of the decisions lives in the README
 
 | 2026-10-26 | 1.0 | Step 3: image loader and hex parser, 43 tests, README sections 3.1 and 3.2 |
 
-**Total so far:** 3.0 h
+| 2026-10-26 | 0.5 | Split io/ and color/ into one file per step |
+| 2026-10-26 | 2.0 | Step 4: 3 adapters, registry, check script (slow network: OpenCV took 8.5 min) |
+
+**Total so far:** 5.5 h
 
 ## Decisions in progress
 
@@ -33,6 +36,11 @@ Kept honest and short; the polished version of the decisions lives in the README
   file per loading step, so each file can be read on its own. Tests mirror the same layout.
 - **A test caught a wrong assumption.** I first listed `#FF00` as invalid, but it is valid
   `#RGBA` (transparent yellow). The test is now pinned and the README warns about it.
+- **Read each model's code before wrapping it.** That's how the min-max stretching (BEN2 and
+  InSPyReNet), BEN2's global settings change and InSPyReNet's heavy `__init__` came to light.
+- **InSPyReNet in fp32.** fp16 autocast gave NaN masks. It was tested, not assumed.
+- **Blank-image check in the smoke test.** It showed that RMBG-2.0 labels a plain grey image as
+  95% subject. That's a lead to verify in the benchmark, not a conclusion.
 - **fp16 on GPU.** Peak VRAM is 1.6 GB, far under the 8 GB available, which leaves room to try
   larger input sizes later.
 
