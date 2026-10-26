@@ -18,7 +18,10 @@ dependencies = [
     "einops>=0.8",
     "pillow>=10.0",
     "numpy>=1.26",
+    # Imported at the top of BEN2's model code (models/ben2/BEN2.py).
     "opencv-python-headless>=4.10",
+    # InSPyReNet's network code. Its own dependencies are removed below.
+    "transparent-background==1.3.4",
 ]
 
 [dependency-groups]
@@ -29,6 +32,17 @@ dev = ["pytest>=8.0"]
 [tool.uv.sources]
 torch = [{ index = "pytorch-cu128" }]
 torchvision = [{ index = "pytorch-cu128" }]
+
+# transparent-background normally pulls in 24 packages: a second OpenCV (the GUI
+# build, which clashes with opencv-python-headless), training tools
+# (albumentations, numba) and downloaders (gdown, wget). We only use its network
+# code, which needs torch and timm (already above), and we download the weights
+# ourselves with an MD5 check. Declaring its dependencies as empty here makes
+# `uv sync` install the package alone, the same way on every machine.
+[[tool.uv.dependency-metadata]]
+name = "transparent-background"
+version = "1.3.4"
+requires-dist = []
 
 [[tool.uv.index]]
 name = "pytorch-cu128"
