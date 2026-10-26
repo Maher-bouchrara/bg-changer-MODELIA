@@ -84,7 +84,7 @@ choose**, and **why**.
 
 ### 3.1 Input handling
 
-🚧 *Implemented in step 2.*
+🚧 *Implemented in step 3.*
 
 **Problem.** Real photos are messier than they look. A phone photo is often
 stored sideways, with a tag (EXIF) telling viewers to rotate it. Files can be
@@ -109,7 +109,7 @@ is the single place that guarantees it.
 
 ### 3.2 Hex colour parsing
 
-🚧 *Implemented in step 2.*
+🚧 *Implemented in step 3.*
 
 **Plan.** Accept the formats people actually type, reject everything else with
 a clear message.
@@ -125,7 +125,7 @@ a clear message.
 
 ### 3.3 Segmentation models
 
-🚧 *Implemented in steps 3–4, chosen by the benchmark in step 5.*
+🚧 *BiRefNet in step 2, the other models in step 4, the default chosen by the benchmark in step 5.*
 
 **What a model does here.** Image in, alpha matte out. Nothing else.
 
@@ -160,6 +160,30 @@ flowchart LR
 
 Only one model is loaded on the GPU at a time, so 8 GB of VRAM is enough.
 Weights are downloaded on first use into a cache and never committed.
+
+**Pinned versions.** BiRefNet's architecture is Python code stored in its
+Hugging Face repo and executed locally (`trust_remote_code`). The code is pinned
+to the exact Hub commit that was tested, so an upstream change cannot silently
+alter results or run unreviewed code.
+
+**First measurements (BiRefNet, RTX 5050 Laptop, fp16, 1024×1024 input):**
+
+| | Value |
+|---|---|
+| Load from cache | ~9 s (first download ~3 min) |
+| First prediction (GPU warm-up) | ~1.3 s |
+| Following predictions | **~0.35 s** |
+| Peak VRAM | **1.6 GB** |
+
+Check your own machine:
+
+```bash
+uv run python scripts/check_gpu.py
+```
+
+```bash
+uv run python scripts/predict_mask.py photo.jpg
+```
 
 ### 3.4 Edge cleanup (foreground estimation)
 
@@ -241,9 +265,14 @@ and the benchmark table go here.
 Each step is one or more small commits.
 
 - [x] **1. Repo baseline**: structure, README plan, notes
-- [ ] **2. Input handling + hex parsing** (with tests)
-- [ ] **3. Python env + GPU check + first model (BiRefNet)**
+- [x] **2. Python env + GPU check + first model (BiRefNet)**
+- [ ] **3. Input handling + hex parsing** (with tests)
 - [ ] **4. Model registry + the other 4 models**
+
+> **Why the model comes before input handling.** Getting PyTorch to run on a
+> brand-new GPU and loading the model is the riskiest part, so it is done first
+> to surface problems early. Input handling and hex parsing are plain Python and
+> low risk. Until step 3 lands, the model step uses a 3-line temporary loader.
 - [ ] **5. Benchmark** → pick the default model
 - [ ] **6. Edge cleanup + compositing** → first full CLI result
 - [ ] **7. Shadow extraction**

@@ -1,0 +1,39 @@
+[project]
+name = "bgchange"
+version = "0.1.0"
+description = "Replace the background of a person/product photo with a solid colour, optionally keeping the subject's shadow."
+readme = "README.md"
+# Pinned to 3.12: PyTorch CUDA wheels are reliably available for it.
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Blackwell GPUs (RTX 50xx, sm_120) need PyTorch >= 2.7 built for CUDA >= 12.8.
+    "torch>=2.7",
+    # BiRefNet uses torchvision.ops.deform_conv2d.
+    "torchvision>=0.22",
+    # Loads BiRefNet from the Hugging Face Hub (AutoModelForImageSegmentation).
+    "transformers>=4.45",
+    # Imported by BiRefNet's model code on the Hub.
+    "timm>=1.0",
+    "kornia>=0.7",
+    "einops>=0.8",
+    "pillow>=10.0",
+    "numpy>=1.26",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+# Take torch/torchvision from PyTorch's CUDA 12.8 index instead of PyPI.
+# (PyPI's Windows wheels are CPU-only.) The Docker CPU image overrides this later.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+torchvision = [{ index = "pytorch-cu128" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
