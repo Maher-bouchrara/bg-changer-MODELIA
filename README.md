@@ -84,7 +84,21 @@ choose**, and **why**.
 
 ### 3.1 Input handling
 
-✅ *[`bgchange/io.py`](bgchange/io.py), 16 tests in [`tests/test_io.py`](tests/test_io.py).*
+✅ *[`bgchange/io/`](bgchange/io/), 18 tests in [`tests/io/`](tests/io/).*
+
+One file per step, so each can be read on its own:
+
+```
+bgchange/io/
+├── loader.py          load_image(): runs steps 1 → 4, returns a LoadedImage
+├── open_file.py       1. open + validate (not an image? truncated? too big?)
+├── exif_rotation.py   2. rotate phone photos upright
+├── transparency.py    3. keep existing transparency as an "alpha hint"
+├── color_mode.py      4. convert to 8-bit sRGB, using:
+├── bit_depth.py          · 16-bit greyscale → 8-bit (scaled, not clipped)
+├── color_profile.py      · ICC profiles (iPhone P3, CMYK) → sRGB
+└── errors.py          ImageLoadError
+```
 
 **Problem.** Real photos are messier than they look. A phone photo is often
 stored sideways, with a tag (EXIF) telling viewers to rotate it. Files can be
@@ -131,7 +145,14 @@ flowchart TB
 
 ### 3.2 Hex colour parsing
 
-✅ *[`bgchange/color.py`](bgchange/color.py), 27 tests in [`tests/test_color.py`](tests/test_color.py).*
+✅ *[`bgchange/color/`](bgchange/color/), 30 tests in [`tests/color/`](tests/color/).*
+
+```
+bgchange/color/
+├── rgba.py         Color(r, g, b, a): the value every other stage uses
+├── hex_parser.py   parse_hex_color(): "#FF0066" → Color(255, 0, 102, 255)
+└── errors.py       ColorParseError
+```
 
 **What `parse_hex_color()` does.** It accepts the formats people actually type
 and rejects everything else with a message that says what to type instead.
@@ -304,7 +325,7 @@ Each step is one or more small commits.
 
 - [x] **1. Repo baseline**: structure, README plan, notes
 - [x] **2. Python env + GPU check + first model (BiRefNet)**
-- [x] **3. Input handling + hex parsing** (43 tests)
+- [x] **3. Input handling + hex parsing** (48 tests)
 - [ ] **4. Model registry + the other 4 models**
 
 > **Why the model comes before input handling.** Getting PyTorch to run on a

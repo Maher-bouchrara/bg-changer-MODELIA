@@ -3,8 +3,9 @@
 The package is organised as a pipeline of small, independent stages so that each
 one can be read, tested and swapped on its own:
 
-    io.py         -> load the image safely (EXIF rotation, colour modes, alpha)
-    color.py      -> parse the user's hex colour ("#RGB", "#RRGGBB", "#RRGGBBAA")
+    io/           -> load the image safely (EXIF rotation, colour modes, alpha);
+                     one file per loading step
+    color/        -> parse the user's hex colour ("#RGB", "#RRGGBB", "#RRGGBBAA")
     segmenters/   -> the AI models; each one only predicts an alpha matte
     matte.py      -> clean the subject's edge colours (remove the old background's tint)
     shadow.py     -> extract the subject's shadow from the original background

@@ -3,7 +3,7 @@
 Run:  uv run python scripts/predict_mask.py photo.jpg -o outputs/photo_mask.png
 
 This is a temporary script used to check the model before the real CLI exists.
-It loads the photo with the same loader as the real pipeline (bgchange/io.py),
+It loads the photo with the same loader as the real pipeline (bgchange/io/),
 so EXIF rotation, CMYK, 16-bit files etc. are handled here too.
 """
 

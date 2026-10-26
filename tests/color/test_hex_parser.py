@@ -1,7 +1,4 @@
-"""Tests for bgchange.color.parse_hex_color.
-
-Run:  uv run pytest tests/test_color.py -v
-"""
+"""Tests for bgchange/color/hex_parser.py: parse_hex_color."""
 
 import pytest
 
@@ -29,23 +26,18 @@ def test_valid_colours(text, expected):
     assert parse_hex_color(text) == expected
 
 
-def test_alpha_defaults_to_opaque():
-    color = parse_hex_color("#123456")
-    assert color.a == 255
-    assert color.is_opaque
-
-
-def test_rgb_property_drops_alpha():
-    assert parse_hex_color("#FF006680").rgb == (255, 0, 102)
-
-
-@pytest.mark.parametrize(
-    ("text", "canonical"),
-    [("f06", "#FF0066"), ("#ff006680", "#FF006680"), ("#F06F", "#FF0066")],
-)
-def test_to_hex_gives_canonical_form(text, canonical):
-    """Opaque colours drop the redundant "FF" alpha in their canonical form."""
+@pytest.mark.parametrize(("text", "canonical"), [("f06", "#FF0066"), ("#F06F", "#FF0066")])
+def test_short_forms_round_trip_to_canonical_hex(text, canonical):
+    """Short forms expand correctly; an explicit "F" alpha means opaque."""
     assert parse_hex_color(text).to_hex() == canonical
+
+
+def test_four_digits_is_short_rgba_not_an_error():
+    """Known trap: "#FF00" looks like a typo but is valid #RGBA (transparent yellow).
+
+    It follows the CSS standard, so it is accepted; the README warns about it.
+    """
+    assert parse_hex_color("#FF00") == Color(255, 255, 0, 0)
 
 
 # --- Rejected inputs ---------------------------------------------------------
@@ -71,14 +63,6 @@ def test_invalid_colours_give_helpful_errors(text, message_part):
         parse_hex_color(text)
     # Every message tells the user what to type instead.
     assert "#RRGGBB" in str(error.value)
-
-
-def test_four_digits_is_short_rgba_not_an_error():
-    """Known trap: "#FF00" looks like a typo but is valid #RGBA (transparent yellow).
-
-    It follows the CSS standard, so it is accepted; the README warns about it.
-    """
-    assert parse_hex_color("#FF00") == Color(255, 255, 0, 0)
 
 
 def test_non_string_input_is_rejected():
