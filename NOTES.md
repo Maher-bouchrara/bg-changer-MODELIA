@@ -10,13 +10,22 @@ Kept honest and short; the polished version of the decisions lives in the README
 | 2026-10-26 | 0.5 | Read the brief, planned the pipeline, repo baseline |
 | 2026-10-26 | 1.0 | Researched the 5 candidate models; PyTorch on the RTX 5050; BiRefNet segmenter (most of the time was the ~13 min PyTorch download) |
 
-**Total so far:** 1.5 h
+| 2026-10-26 | 0.5 | Checked each model's license, gating and files; download script; downloaded all 5 models |
+
+**Total so far:** 2.0 h
 
 ## Decisions in progress
 
 - **Model step before input handling.** The riskiest part (new GPU + model loading) goes first.
 - **Pinned BiRefNet revision** (`e2bf8e44...`). transformers warns that remote model code is
   re-downloaded unpinned otherwise.
+- **Models in `./models/<name>/`, not the hidden Hugging Face cache.** It's easy to see what is
+  on disk and to delete one model. A script downloads every model pinned to an exact version.
+- **Only inference files are downloaded.** BEN2's repo is 1.76 GB, but `model.safetensors` (381 MB)
+  is enough. The 1.1 GB `.pth` holds the same weights, and ONNX exports and demo images are skipped.
+  The same goes for RMBG-2.0: 5.4 GB in the repo, 885 MB needed.
+- **InSPyReNet comes from a GitHub release**, not Hugging Face. The script verifies its MD5 checksum.
+- **RMBG-2.0 is gated.** I accepted BRIA's terms and logged in to Hugging Face myself.
 - **fp16 on GPU.** Peak VRAM is 1.6 GB, far under the 8 GB available, which leaves room to try
   larger input sizes later.
 

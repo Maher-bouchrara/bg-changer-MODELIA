@@ -7,6 +7,8 @@ __pycache__/
 .ruff_cache/
 
 # --- Model weights & caches (downloaded at runtime, never committed) ---
+models/*
+!models/README.md
 .cache/
 hf_cache/
 *.safetensors
