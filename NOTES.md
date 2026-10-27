@@ -17,7 +17,9 @@ Kept honest and short; the polished version of the decisions lives in the README
 | 2026-10-26 | 0.5 | Split io/ and color/ into one file per step |
 | 2026-10-26 | 2.0 | Step 4: 3 adapters, registry, check script (slow network: OpenCV took 8.5 min) |
 
-**Total so far:** 5.5 h
+| 2026-10-27 | 1.0 | Chose benchmark sets (checked BiRefNet's training list), test_data/ README, download script. The download itself took about 1.5 h at 0.13 MB/s (unattended) |
+
+**Total so far:** 6.5 h
 
 ## Decisions in progress
 
@@ -41,6 +43,14 @@ Kept honest and short; the polished version of the decisions lives in the README
 - **InSPyReNet in fp32.** fp16 autocast gave NaN masks. It was tested, not assumed.
 - **Blank-image check in the smoke test.** It showed that RMBG-2.0 labels a plain grey image as
   95% subject. That's a lead to verify in the benchmark, not a conclusion.
+- **Test sets: DIS-VD + P3M-500-NP, not P3M-500-P or AIM-500.** I first proposed P3M-500-P. Then
+  BiRefNet's official README showed its general model *trained* on P3M-500-P and AIM-500, and kept
+  DIS-VD and P3M-500-NP for testing. Testing on training images would inflate its score.
+- **Only the test split is downloaded** (757 MB instead of about 12 GB), from Hugging Face copies
+  that store each split as its own file. Pinned commit + SHA-256 check + official image count.
+- **Custom resumable downloader.** huggingface_hub's downloader stalled twice on the slow
+  connection (Xet at 0 MB, plain HTTP at 10 MB). The script now resumes with HTTP Range requests
+  and retries. It survived one timeout mid-download.
 - **fp16 on GPU.** Peak VRAM is 1.6 GB, far under the 8 GB available, which leaves room to try
   larger input sizes later.
 

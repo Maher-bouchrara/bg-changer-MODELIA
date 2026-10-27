@@ -9,6 +9,8 @@ __pycache__/
 # --- Model weights & caches (downloaded at runtime, never committed) ---
 models/*
 !models/README.md
+test_data/*
+!test_data/README.md
 .cache/
 hf_cache/
 *.safetensors

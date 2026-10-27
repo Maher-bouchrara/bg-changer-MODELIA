@@ -18,6 +18,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = Path(os.environ.get("BGCHANGE_MODELS_DIR", PROJECT_ROOT / "models"))
 
 
+#: Where the benchmark test images are (test_data/dis-vd/, ...). See test_data/README.md.
+TEST_DATA_DIR = Path(os.environ.get("BGCHANGE_TEST_DATA_DIR", PROJECT_ROOT / "test_data"))
+
+
 def model_dir(name: str) -> Path:
     """Folder of one model, checked to exist.
 

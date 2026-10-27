@@ -25,7 +25,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8.0"]
+dev = [
+    "pyarrow>=15",
+    "pytest>=8.0",
+]
 
 # Take torch/torchvision from PyTorch's CUDA 12.8 index instead of PyPI.
 # (PyPI's Windows wheels are CPU-only.) The Docker CPU image overrides this later.
