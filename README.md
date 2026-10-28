@@ -7,6 +7,8 @@ Put a person or product photo on a new solid-colour background, and optionally
 photo.jpg + "#FF0066"  ──►  same photo, same subject, pink background (+ shadow)
 ```
 
+> **Step-by-step documentation** (one page per step, with diagrams and results): [docs/](docs/README.md)
+
 > **Status:** work in progress. Sections marked 🚧 are planned and are filled in
 > as each step is committed. See [Roadmap](#roadmap).
 
