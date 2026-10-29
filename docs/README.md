@@ -12,7 +12,7 @@ were made and why, and what went wrong**.
 | 4 | [The 5 segmentation models and the registry](04-segmentation-models.md) | ✅ |
 | 5 | [Benchmark: which model is best?](05-benchmark.md) | ✅ BiRefNet chosen |
 | 6a | [Compositing: the subject on the new colour](06-compositing.md) | ✅ |
-| 6b | Edge cleanup | ⬜ |
+| 6b | [Edge cleanup: remove the old background from the edges](06b-edge-cleanup.md) | ✅ |
 | 7 | Shadow extraction | ⬜ |
 | 8–10 | API, web interface, Docker | ⬜ |
 

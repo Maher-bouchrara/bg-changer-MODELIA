@@ -85,7 +85,8 @@ With a solid colour (`bg_alpha = 1`) this is the first formula again.
 Edge pixels in the photo already contain some of the **old** background.
 Where the mask is 0.5, half of that pixel's colour is old background, and it
 shows as a faint dark halo around the hair. Fixing it needs a guess of the
-subject's true colour at the edges: that is **step 6b**.
+subject's true colour at the edges: that is **step 6b**, see
+[06b-edge-cleanup.md](06b-edge-cleanup.md).
 
 The product has no shadow either, so it looks like it floats: **step 6c**.
 
