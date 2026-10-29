@@ -40,7 +40,19 @@ uv run bgchange-api
 Keep this terminal open, then open http://127.0.0.1:8000/docs in a browser
 (click a route, "Try it out"). Stop it with **Ctrl + C**.
 
-## 2b. Only the mask of one photo
+## 2b. Optional: the web page
+
+Needs the API (2a) running in another terminal. First time only: `npm install`.
+
+```
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:3000. Stop it with **Ctrl + C**.
+
+## 2c. Only the mask of one photo
 
 ```
 uv run python scripts/predict_mask.py "C:\path\to\photo.jpg" --model birefnet

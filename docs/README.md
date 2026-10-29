@@ -16,7 +16,8 @@ were made and why, and what went wrong**.
 | 6c | [Shadows: real, fake, both or none](06c-shadows.md) | ✅ |
 | 8a | [The `bgchange` command and one shared pipeline](08a-cli.md) | ✅ |
 | 8b | [The web API (optional)](08b-api.md) | ✅ |
-| 9–10 | Web interface, Docker | ⬜ |
+| 9 | [The web page (optional)](09-web-page.md) | ✅ |
+| 10 | Docker | ⬜ |
 
 ## The whole pipeline in one picture
 
