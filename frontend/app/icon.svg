@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The browser-tab icon: a black "B" on white, square like the rest of the page.
+       Next.js serves app/icon.svg as the favicon automatically. -->
+  <rect width="64" height="64" fill="#ffffff"/>
+  <text x="32" y="47" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="46" font-weight="700" fill="#0a0a0a">B</text>
+</svg>
