@@ -120,12 +120,43 @@ RMBG-2.0 is CC BY-NC 4.0: free for research and testing, **not for commercial
 use** without a paid licence from BRIA. It stays available as an option but
 will not be the default in this repo.
 
-## Next: a fair product test
+## Fair product test: an eye test on 62 new photos
 
-| Option | How | Numbers? | Effort |
-|---|---|---|---|
-| **A** (first) | Find a product/object dataset published **after** the models (InSPyReNet: Jan 2024, RMBG-2.0: late 2024) | ✅ | small |
-| **D** (fallback) | Draw answer keys for ~10 product photos ourselves + eye-test ~25 more | ✅ | medium |
+No clean product dataset was found, so I used new photos from
+[Pexels](https://www.pexels.com/license/) (free for commercial use), most
+uploaded in 2025, after the models were trained:
+
+| Set | Photos | What |
+|---|---|---|
+| `real-photos` | 28 | people and products in real life: clutter, night, couches, bars |
+| `products/eye-test` | 24 | hard products: glass, white on white, plush, several objects |
+| `products/answer-key` | 10 | simpler products (answer keys not drawn, see below) |
+
+`scripts/compare_models.py` runs every model on a folder and builds sheets:
+one row per photo, each model's cut-out on pink, **the photos where the models
+disagree most come first**. Every photo's source is in `test_data/photo_sources.csv`.
+
+What the sheets show:
+
+| Model | Behaviour on real photos |
+|---|---|
+| **birefnet** | Keeps **only the main subject**: the person without the couch, the bottles without the plate |
+| rmbg-2.0, ben2 | Often keep **extra things**: couches, seats, plates |
+| inspyrenet, ben2 | Often keep decoration around products (leaves, plate) |
+| birefnet-matting | Good on people, but finds **almost nothing** on some products |
+
+Some photos are truly ambiguous: in "person holding a coffee", BiRefNet keeps
+only the cup, the others keep the person and the cup.
+
+## Decision
+
+**BiRefNet is the default model**: best fair scores on people and objects, the
+cleanest subjects in the eye test, and an MIT licence. The other 4 stay
+available with `--model`.
+
+Hand-drawn answer keys for the 10 product photos were **skipped**: the eye test
+already agreed with the numbers, and the time is better spent on compositing
+and shadows. Phone photos can be added later the same way.
 
 ## Run it
 
@@ -146,4 +177,4 @@ and every predicted mask.
 
 ## Result
 
-Commits `b1db92c`, `f596538`. 68 tests.
+Commits `b1db92c`, `f596538`, plus the eye-test scripts. 68 tests.

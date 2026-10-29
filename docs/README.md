@@ -10,7 +10,7 @@ were made and why, and what went wrong**.
 | 2 | [GPU and the first model](02-gpu-and-first-model.md) | ✅ |
 | 3 | [Input handling and hex colour parsing](03-input-handling.md) | ✅ |
 | 4 | [The 5 segmentation models and the registry](04-segmentation-models.md) | ✅ |
-| 5 | [Benchmark: which model is best?](05-benchmark.md) | 🔶 fair product test pending |
+| 5 | [Benchmark: which model is best?](05-benchmark.md) | ✅ BiRefNet chosen |
 | 6 | Edge cleanup and compositing | ⬜ |
 | 7 | Shadow extraction | ⬜ |
 | 8–10 | API, web interface, Docker | ⬜ |
