@@ -47,14 +47,33 @@ def test_solid_colour_gives_rgb_same_size(photo):
 
 
 def test_fully_transparent_colour_gives_a_cut_out(photo):
-    """#00000000: the output's transparency is the mask itself, the subject is unchanged."""
+    """#00000000: the output's transparency is the mask itself, the subject is unchanged.
+
+    Edge cleanup is off here so the half-mask pixel can be compared with the photo.
+    """
     mask = np.array([[1.0, 0.0], [0.5, 1.0]], np.float32)
-    result = composite(photo, mask, Color(0, 0, 0, 0))
+    result = composite(photo, mask, Color(0, 0, 0, 0), clean_edges=False)
     rgba = np.asarray(result)
     assert result.mode == "RGBA"
     assert rgba[..., 3].tolist() == [[255, 0], [128, 255]]
     assert np.array_equal(rgba[0, 0, :3], np.asarray(photo)[0, 0])  # mask 1: photo kept
     assert np.array_equal(rgba[1, 0, :3], np.asarray(photo)[1, 0])  # mask 0.5: colour not darkened
+
+
+def test_edge_cleanup_is_on_by_default_and_only_changes_edges():
+    """A red subject edge over green: cleaned, the edge pixel is redder than without cleanup."""
+    pixels = np.zeros((10, 20, 3), np.uint8)
+    pixels[:, :10] = (200, 10, 10)  # red subject
+    pixels[:, 10] = (145, 120, 10)  # edge: red and green mixed
+    pixels[:, 11:] = (10, 160, 10)  # green background
+    mask = np.zeros((10, 20), np.float32)
+    mask[:, :10], mask[:, 10] = 1.0, 0.5
+    photo = Image.fromarray(pixels, mode="RGB")
+
+    cleaned = np.asarray(composite(photo, mask, Color(255, 255, 255)))
+    raw = np.asarray(composite(photo, mask, Color(255, 255, 255), clean_edges=False))
+    assert cleaned[0, 10, 1] < raw[0, 10, 1]  # less green left in the edge
+    assert np.array_equal(cleaned[:, :10], raw[:, :10])  # subject untouched
 
 
 def test_half_transparent_colour_gives_half_opaque_background(photo):

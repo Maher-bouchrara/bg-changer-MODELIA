@@ -12,6 +12,10 @@ or a mix (soft edge, hair):
 The mix is done in linear light (see linear_light.py) so soft edges keep the
 right brightness.
 
+Before mixing, the edges are cleaned (see foreground.py): "photo" above is the
+subject's own colour, without the old background that was mixed into the edge
+pixels. clean_edges=False skips this, to compare.
+
 Transparent colour (e.g. "#FF006680", or "#00000000" for a plain cut-out):
 the background only covers part of the pixel, so the output gets an alpha
 channel too ("over" operator):
@@ -30,16 +34,18 @@ from PIL import Image
 
 from bgchange.s2_read_color import Color
 from bgchange.s5_new_background.background import make_background
+from bgchange.s5_new_background.foreground import estimate_foreground
 from bgchange.s5_new_background.linear_light import linear_to_srgb, srgb_to_linear, to_uint8
 
 
-def composite(photo: Image.Image, mask: np.ndarray, color: Color) -> Image.Image:
+def composite(photo: Image.Image, mask: np.ndarray, color: Color, clean_edges: bool = True) -> Image.Image:
     """Place the subject of `photo` on a background of `color`.
 
     Args:
         photo: the upright 8-bit RGB photo (LoadedImage.rgb).
         mask: float array (height, width) in [0, 1] from the model, same size as `photo`.
         color: the new background colour.
+        clean_edges: remove the old background's colour from the edges first (foreground.py).
 
     Returns:
         Same size as `photo`. Mode "RGB" when the colour is solid, "RGBA" when
@@ -59,6 +65,8 @@ def composite(photo: Image.Image, mask: np.ndarray, color: Color) -> Image.Image
     a = np.clip(mask.astype(np.float32), 0.0, 1.0)[..., None]
     bg = make_background(color, photo.size)
     bg_rgb, bg_a = bg[..., :3], bg[..., 3:]
+    if clean_edges:
+        fg = estimate_foreground(fg, a[..., 0])
 
     # 2. The mix ("over" operator, see the module docstring).
     out_a = a + bg_a * (1.0 - a)
