@@ -16,6 +16,9 @@ Before mixing, the edges are cleaned (see foreground.py): "photo" above is the
 subject's own colour, without the old background that was mixed into the edge
 pixels. clean_edges=False skips this, to compare.
 
+The background layer can carry the photo's shadow (shadow=..., from s4_shadow):
+it is darkened there before the mix, see background.py.
+
 Transparent colour (e.g. "#FF006680", or "#00000000" for a plain cut-out):
 the background only covers part of the pixel, so the output gets an alpha
 channel too ("over" operator):
@@ -38,7 +41,13 @@ from bgchange.s5_new_background.foreground import estimate_foreground
 from bgchange.s5_new_background.linear_light import linear_to_srgb, srgb_to_linear, to_uint8
 
 
-def composite(photo: Image.Image, mask: np.ndarray, color: Color, clean_edges: bool = True) -> Image.Image:
+def composite(
+    photo: Image.Image,
+    mask: np.ndarray,
+    color: Color,
+    clean_edges: bool = True,
+    shadow: np.ndarray | None = None,
+) -> Image.Image:
     """Place the subject of `photo` on a background of `color`.
 
     Args:
@@ -46,6 +55,7 @@ def composite(photo: Image.Image, mask: np.ndarray, color: Color, clean_edges: b
         mask: float array (height, width) in [0, 1] from the model, same size as `photo`.
         color: the new background colour.
         clean_edges: remove the old background's colour from the edges first (foreground.py).
+        shadow: optional shadow map from s4_shadow, drawn on the background (background.py).
 
     Returns:
         Same size as `photo`. Mode "RGB" when the colour is solid, "RGBA" when
@@ -63,7 +73,7 @@ def composite(photo: Image.Image, mask: np.ndarray, color: Color, clean_edges: b
     #    (h, w) into (h, w, 1) so it multiplies all 3 colour channels at once.
     fg = srgb_to_linear(np.asarray(photo, dtype=np.float32) / 255.0)
     a = np.clip(mask.astype(np.float32), 0.0, 1.0)[..., None]
-    bg = make_background(color, photo.size)
+    bg = make_background(color, photo.size, shadow)
     bg_rgb, bg_a = bg[..., :3], bg[..., 3:]
     if clean_edges:
         fg = estimate_foreground(fg, a[..., 0])
@@ -72,7 +82,8 @@ def composite(photo: Image.Image, mask: np.ndarray, color: Color, clean_edges: b
     out_a = a + bg_a * (1.0 - a)
     premultiplied = fg * a + bg_rgb * bg_a * (1.0 - a)
 
-    # 3. Solid colour: out_a is 1 everywhere, so no division and no alpha channel.
+    # 3. Solid colour: out_a is 1 everywhere (a shadow on a solid colour stays
+    #    solid), so no division and no alpha channel.
     if color.is_opaque:
         return Image.fromarray(to_uint8(linear_to_srgb(premultiplied)), mode="RGB")
 

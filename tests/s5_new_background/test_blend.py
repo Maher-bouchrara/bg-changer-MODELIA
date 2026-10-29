@@ -102,3 +102,19 @@ def test_background_layer_shape_and_opacity():
     layer = make_background(Color(255, 255, 255, 51), (4, 3))
     assert layer.shape == (3, 4, 4)
     assert layer[0, 0].tolist() == pytest.approx([1.0, 1.0, 1.0, 0.2])
+
+
+def test_shadow_darkens_a_solid_colour(photo):
+    """Shadow 0.5 = half the light: white becomes sRGB 188 (half the light of 255)."""
+    shadow = np.full((2, 2), 0.5, np.float32)
+    result = composite(photo, np.zeros((2, 2), np.float32), Color(255, 255, 255), shadow=shadow)
+    assert result.mode == "RGB"
+    assert (np.asarray(result) == 188).all()
+
+
+def test_shadow_on_a_cut_out_is_semi_transparent_black(photo):
+    shadow = np.full((2, 2), 0.4, np.float32)
+    result = composite(photo, np.zeros((2, 2), np.float32), Color(0, 0, 0, 0), shadow=shadow)
+    rgba = np.asarray(result)
+    assert (rgba[..., :3] == 0).all()
+    assert (rgba[..., 3] == round(0.4 * 255)).all()
