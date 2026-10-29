@@ -1,0 +1,626 @@
+/* Look of the bgchange page, in the spirit of modelia.ai:
+   black and white, square corners, thin black lines, wide uppercase headings.
+   The photo and the chosen colour are the only colour on the page.
+
+   1. Tokens (every colour and size used below)
+   2. Base
+   3. Layout: header, intro, the two columns, footer
+   4. Controls: step labels, drop zone, colour, shadow, buttons
+   5. Result: before/after, progress bar, messages
+   6. Accessibility helpers */
+
+/* ---- 1. Tokens ---------------------------------------------------------- */
+:root {
+  --ink: #0a0a0a; /* text, lines, buttons */
+  --paper: #ffffff; /* page */
+  --muted: #555555; /* secondary text: 7.5:1 on white */
+  --line: #d5d5d5; /* light borders */
+  --wash: #f2f2f2; /* empty areas */
+  --danger: #b3261e; /* errors: 6.5:1 on white */
+
+  --font-display: var(--font-unbounded), "Helvetica Neue", Arial, sans-serif;
+  --font-body: var(--font-inter), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --control-h: 44px; /* minimum touch target */
+  --ease: 200ms ease-out;
+}
+
+/* ---- 2. Base ------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+  border-radius: 0; /* square corners everywhere */
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* ---- 3. Layout ----------------------------------------------------------- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--ink);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-6);
+  font-size: 14px;
+}
+
+.nav a {
+  text-decoration: none;
+  padding: var(--space-2) 0;
+}
+
+.nav a:hover {
+  text-decoration: underline;
+}
+
+.intro {
+  padding: var(--space-12) var(--space-6) var(--space-6);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.intro h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(28px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  margin: 0 0 var(--space-4);
+}
+
+.intro p {
+  color: var(--muted);
+  max-width: 60ch;
+  margin: 0;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: var(--space-8);
+  padding: var(--space-6);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.footer {
+  border-top: 1px solid var(--ink);
+  margin-top: var(--space-12);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 14px;
+}
+
+.footer code {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+/* Phones and small tablets: one column, controls first. */
+@media (max-width: 860px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .intro {
+    padding-top: var(--space-8);
+  }
+  .header,
+  .intro,
+  .workspace,
+  .footer {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .nav {
+    gap: var(--space-4);
+  }
+}
+
+/* ---- 4. Controls --------------------------------------------------------- */
+.step {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.step-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin: var(--space-2) 0 0;
+}
+
+.field-error {
+  font-size: 13px;
+  color: var(--danger);
+  margin: var(--space-2) 0 0;
+}
+
+/* Drop zone: the whole box is the label of a hidden file input. */
+.dropzone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 96px;
+  padding: var(--space-3);
+  border: 1px dashed var(--ink);
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.dropzone:hover,
+.dropzone.is-dragging {
+  background: var(--wash);
+}
+
+.dropzone:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.dropzone img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  flex: none;
+}
+
+.dropzone-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  min-width: 0;
+}
+
+.dropzone-text strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.dropzone-text span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Colour: swatches, then the hex box with the native picker beside it. */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.swatch {
+  width: var(--control-h);
+  height: var(--control-h);
+  border: 1px solid var(--line);
+  padding: 0;
+  cursor: pointer;
+}
+
+.swatch[aria-pressed="true"] {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.checker {
+  background-color: #fff;
+  background-image: linear-gradient(45deg, #ccc 25%, transparent 25%),
+    linear-gradient(-45deg, #ccc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ccc 75%),
+    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.hex-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.hex-input {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-h);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.hex-input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.native-picker {
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 2px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  cursor: pointer;
+}
+
+/* Shadow: 4 radio buttons drawn as one segmented bar. */
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--ink);
+}
+
+.segmented label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-h);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+
+.segmented label + label {
+  border-left: 1px solid var(--ink);
+}
+
+.segmented label:hover {
+  background: var(--wash);
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.segmented label:has(input:checked) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  z-index: 1;
+}
+
+.strength {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  font-size: 14px;
+}
+
+.strength input[type="range"] {
+  flex: 1;
+  accent-color: var(--ink);
+  min-height: var(--control-h);
+}
+
+.strength output {
+  font-family: var(--font-mono);
+  min-width: 3ch;
+  text-align: right;
+}
+
+/* Buttons: black with white text (primary), or outlined. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  padding: 0 var(--space-6);
+  border: 1px solid var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+
+.button-primary {
+  background: var(--ink);
+  color: var(--paper);
+  width: 100%;
+}
+
+.button-primary:hover {
+  background: #2b2b2b;
+}
+
+.button-primary[aria-busy="true"] {
+  cursor: progress;
+}
+
+.button-outline {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.button-outline:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ---- 5. Result ----------------------------------------------------------- */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--line);
+  background: var(--wash);
+  overflow: hidden;
+}
+
+.stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.stage-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--muted);
+}
+
+.stage-empty strong {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 20px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* Before/after: the "after" image is cut at the slider's position. */
+.compare-after {
+  clip-path: inset(0 0 0 var(--split));
+}
+
+.compare-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--split);
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.compare-handle {
+  position: absolute;
+  top: 50%;
+  left: var(--split);
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* The real control is an invisible range input over the whole image:
+   drag with mouse or finger, or arrows on the keyboard. */
+.compare-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+
+.compare-range:focus-visible ~ .compare-handle {
+  outline: 2px solid var(--paper);
+  outline-offset: -5px;
+}
+
+.tag {
+  position: absolute;
+  top: var(--space-2);
+  padding: 2px var(--space-2);
+  background: var(--paper);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+}
+
+.tag-before {
+  left: var(--space-2);
+}
+
+.tag-after {
+  right: var(--space-2);
+}
+
+.result-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Progress: an indeterminate bar while the API works (~3 s). */
+.progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  background: var(--ink);
+  animation: slide 1.1s ease-in-out infinite;
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+.working-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* Messages: an error under the button, a banner when the API is down. */
+.alert {
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: var(--space-3);
+  font-size: 14px;
+  margin: 0;
+}
+
+.banner {
+  border-bottom: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  padding: var(--space-3) var(--space-6);
+  font-size: 14px;
+}
+
+.banner code {
+  font-family: var(--font-mono);
+}
+
+/* ---- 6. Accessibility helpers ------------------------------------------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+  .progress::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
+}
