@@ -17,7 +17,7 @@ were made and why, and what went wrong**.
 | 8a | [The `bgchange` command and one shared pipeline](08a-cli.md) | ✅ |
 | 8b | [The web API (optional)](08b-api.md) | ✅ |
 | 9 | [The web page (optional)](09-web-page.md) | ✅ |
-| 10 | Docker | ⬜ |
+| 10 | [Docker (optional)](10-docker.md) | ✅ |
 
 ## The whole pipeline in one picture
 
