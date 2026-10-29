@@ -5,19 +5,14 @@ Kept honest and short; the polished version of the decisions lives in docs/ (one
 
 ## Time log
 
-| Date | Hours | What |
+| Day | Hours | What |
 |---|---|---|
-| 2026-10-26 | 0.5 | Read the brief, planned the pipeline, repo baseline |
-| 2026-10-26 | 1.0 | Researched the 5 candidate models; PyTorch on the RTX 5050; BiRefNet segmenter (most of the time was the ~13 min PyTorch download) |
-| 2026-10-26 | 0.5 | Checked each model's license, gating and files; download script; downloaded all 5 models |
-| 2026-10-26 | 1.0 | Step 3: image loader and hex parser, 43 tests, README sections 3.1 and 3.2 |
-| 2026-10-26 | 0.5 | Split io/ and color/ into one file per step |
-| 2026-10-26 | 2.0 | Step 4: 3 adapters, registry, check script (slow network: OpenCV took 8.5 min) |
-| 2026-10-27 | 1.0 | Chose benchmark sets (checked BiRefNet's training list), test_data/ README, download script. The download itself took about 1.5 h at 0.13 MB/s (unattended) |
-| 2026-10-28 | 2-3 | Step 5: ran the benchmark (5 models × 970 photos), found the InSPyReNet / RMBG-2.0 test-set overlap, step-by-step docs and results chart, commands cheat sheet |
-| 2026-10-29 | 2-3 | Eye test on 62 new photos (BiRefNet kept); step 6: compositing, edge cleanup, shadows; step 8: `bgchange` command and web API; step 9: web page; step 10: Docker; final README |
+| Mon 26 Oct | 5h30 | Plan, GPU setup, the 5 models, photo loading, hex colours |
+| Tue 27 Oct | 1h | Benchmark test data |
+| Wed 28 Oct | 2-3h | Benchmark results, docs |
+| Thu 29 Oct | 2-3h | Eye test, compositing, edges, shadows, CLI, API, web page, Docker, README |
 
-**Total so far:** about 10.5-12.5 h (Monday to Thursday)
+**Total:** about 10h30 to 12h30
 
 ## Decisions in progress
 
