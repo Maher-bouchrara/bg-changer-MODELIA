@@ -1,0 +1,7 @@
+# Left out of the web image build: installed and built in the image itself.
+node_modules
+.next
+AGENTS.md
+next-env.d.ts
+*.tsbuildinfo
+Dockerfile
