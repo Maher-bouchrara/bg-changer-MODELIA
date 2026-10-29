@@ -6,9 +6,8 @@ page's footer shows the matching command for the current settings.
 
 ![The page with a result: before on the left, after on the right](images/09_web_page_result.jpg)
 
-*Red sneakers on `#FF0066` with the `mix` shadow, 1.6 s. Drag the black handle
-to compare. (The round "N" at the bottom left is Next.js's development badge;
-it is not in the production build.)*
+*A portrait on `#FF0066` with the `real` shadow, 15.9 s on the CPU (the Docker
+version). Drag the black handle to compare before and after.*
 
 ## How to run it
 
