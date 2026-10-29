@@ -1,404 +1,160 @@
-# Bg-changer
+# bgchange
 
-Put a person or product photo on a new solid-colour background, and optionally
-**keep the subject's real shadow** on the new colour.
-
-```
-photo.jpg + "#FF0066"  ──►  same photo, same subject, pink background (+ shadow)
-```
-
-> **Step-by-step documentation** (one page per step, with diagrams and results): [docs/](docs/README.md)
-
-> **Status:** work in progress. Sections marked 🚧 are planned and are filled in
-> as each step is committed. See [Roadmap](#roadmap).
-
----
-
-## Contents
-
-1. [Quick start](#quick-start)
-2. [How it works (the pipeline)](#how-it-works-the-pipeline)
-3. [Decisions, step by step](#decisions-step-by-step)
-   - [3.1 Input handling](#31-input-handling)
-   - [3.2 Hex colour parsing](#32-hex-colour-parsing)
-   - [3.3 Segmentation models](#33-segmentation-models)
-   - [3.4 Edge cleanup (foreground estimation)](#34-edge-cleanup-foreground-estimation)
-   - [3.5 Shadow extraction](#35-shadow-extraction)
-   - [3.6 Compositing](#36-compositing)
-   - [3.7 Architecture: CLI, API, UI](#37-architecture-cli-api-ui)
-4. [Results](#results)
-5. [What did not work / limitations](#what-did-not-work--limitations)
-6. [Roadmap](#roadmap)
-7. [Time spent and use of AI tools](#time-spent-and-use-of-ai-tools)
-
----
-
-## Quick start
-
-🚧 Filled in once the CLI and Docker Compose exist. The target is one command each:
+Put a **person or product photo on a new background colour**, with clean edges
+and the **subject's shadow**: a command-line tool, with an optional web page.
 
 ```bash
-docker compose up
+uv run bgchange photo.jpg --color "#FF0066"
 ```
+
+![The same 6 photos with each shadow choice](docs/images/06c_shadow_choices.jpg)
+
+- **AI cut-out:** [BiRefNet](https://github.com/ZhengPeng7/BiRefNet), chosen after benchmarking 5 models on 970 photos ([why](docs/05-benchmark.md)).
+- **Clean edges:** no halo of the old background around hair or fur.
+- **Shadow:** the photo's real shadow (default), a computed one, both, or none.
+- **Any hex colour**, including transparent (`#00000000` gives a cut-out PNG).
+
+---
+
+## 1. Setup (once)
+
+Needs [git](https://git-scm.com/) and [uv](https://docs.astral.sh/uv/getting-started/installation/)
+(uv installs Python 3.12 by itself). An NVIDIA GPU is optional: it is used
+automatically if present (~2 s per photo), otherwise the CPU (~20 s).
 
 ```bash
-uv run bgchange photo.jpg --color "#FF0066" --shadow keep -o out.png
+git clone https://github.com/Maher-bouchrara/bg-changer-MODELIA.git
+cd bg-changer-MODELIA
+uv sync
+uv run python scripts/download_models.py birefnet
 ```
 
----
+`uv sync` installs the Python packages; the last line downloads the AI model
+(425 MB, once). Check that everything works: `uv run pytest` (133 tests, no GPU needed).
 
-## How it works (the pipeline)
+## 2. CLI guide (the main way to use it)
 
-The AI model does **one** job: it says, for every pixel, *how much of this pixel
-is the subject* (a number from 0 to 1 called the **alpha matte**). Everything
-else (reading the file, the colour, the shadow, the blend) is ordinary image
-processing written in this repo.
-
-```mermaid
-flowchart LR
-    IMG["Input photo"] --> IN["3.1 Input handling"]
-    HEX["Hex colour<br/>#FF0066"] --> HP["3.2 Hex parsing"]
-
-    IN --> SEG["3.3 AI model<br/>predicts alpha matte"]
-    SEG --> FG["3.4 Edge cleanup<br/>true subject colours"]
-    IN --> FG
-
-    IN --> SH["3.5 Shadow extraction<br/>(optional)"]
-    SEG --> SH
-
-    FG --> CMP["3.6 Compositing"]
-    HP --> CMP
-    SH --> CMP
-    CMP --> OUT["Output PNG"]
-
-    style SEG fill:#ffe3ec,stroke:#d6336c
+```bash
+uv run bgchange photo.jpg --color "#FF0066"
 ```
 
-Only the pink box is a neural network. That separation is deliberate: the model
-can be swapped (see 3.3) without touching any other stage.
+The result is saved as `outputs/photo_on_FF0066.png`, same size as the photo.
 
----
-
-## Decisions, step by step
-
-Each section answers three questions: **what is the problem**, **what did I
-choose**, and **why**.
-
-### 3.1 Input handling
-
-✅ *[`bgchange/s1_load_photo/`](bgchange/s1_load_photo/), 18 tests in [`tests/s1_load_photo/`](tests/s1_load_photo/).*
-
-One file per step, so each can be read on its own:
-
-```
-bgchange/s1_load_photo/
-├── loader.py          load_image(): runs steps 1 → 4, returns a LoadedImage
-├── open_file.py       1. open + validate (not an image? truncated? too big?)
-├── exif_rotation.py   2. rotate phone photos upright
-├── transparency.py    3. keep existing transparency as an "alpha hint"
-├── color_mode.py      4. convert to 8-bit sRGB, using:
-├── bit_depth.py          · 16-bit greyscale → 8-bit (scaled, not clipped)
-├── color_profile.py      · ICC profiles (iPhone P3, CMYK) → sRGB
-└── errors.py          ImageLoadError
-```
-
-**Problem.** Real photos are messier than they look. A phone photo is often
-stored sideways, with a tag (EXIF) telling viewers to rotate it. Files can be
-greyscale, CMYK (print), 16-bit, carry a colour profile, or already have
-transparency.
-
-**What `load_image()` does.** It takes a file path (CLI) or raw bytes (API) and
-always returns the same thing: an upright, 8-bit sRGB image.
-
-```mermaid
-flowchart TB
-    A["File path or uploaded bytes"] --> V{"1. A real image?<br/>Under 50 MP?"}
-    V -- no --> ERR["Clear error message"]
-    V -- yes --> R{"2. EXIF rotation tag?"}
-    R -- yes --> R2["Rotate pixels upright"] --> S
-    R -- no --> S{"3. Has transparency?"}
-    S -- yes --> S2["Keep it as an alpha hint"] --> C
-    S -- no --> C{"4. Colour format?"}
-    C -- "16-bit grey" --> C1["Scale to 8-bit"] --> OUT
-    C -- "ICC profile (P3, CMYK…)" --> C2["Convert to sRGB"] --> OUT
-    C -- "CMYK / grey / palette" --> C3["Convert to RGB"] --> OUT
-    C -- "RGB" --> OUT["LoadedImage<br/>8-bit sRGB + alpha hint + notes"]
-```
-
-| Hard case | What would go wrong without it | Fix |
+| Option | What it does | Default |
 |---|---|---|
-| Phone photo with EXIF rotation | Subject processed and returned lying on its side | Rotate the pixels, drop the tag |
-| 16-bit greyscale PNG | Pillow's `convert("L")` *clips* instead of scaling, so mid-grey becomes white | Scale by hand (÷257) |
-| iPhone photo (Display-P3) | Colours read as sRGB look washed out | Convert with the embedded ICC profile |
-| CMYK print JPEG | Model expects RGB | Use the ICC profile if present, else Pillow's formula |
-| PNG already partly transparent | That information would be lost | Kept as an *alpha hint* for compositing |
-| Animated GIF / multi-page TIFF | Ambiguous input | First frame, with a note |
-| Not an image, truncated download | Crash with a Python traceback | One clear error message |
-| 20,000 × 20,000 image, decompression bomb | Freezes the machine | Refused **before** decoding (limit 50 MP) |
-| Broken colour profile | Good photo rejected | Profile ignored, with a note |
-
-**Design choices.**
-- **Nothing happens silently.** Every fix adds a line to `notes`, and the CLI and
-  API show them, so a user can see *why* the output looks the way it does.
-- **Transparency is removed before colour conversion**, because colour profiles
-  apply to colour channels only.
-- **All test images are generated in code.** No binary test files in the repo,
-  and each test triggers exactly one problem.
-
-### 3.2 Hex colour parsing
-
-✅ *[`bgchange/s2_read_color/`](bgchange/s2_read_color/), 30 tests in [`tests/s2_read_color/`](tests/s2_read_color/).*
-
-```
-bgchange/s2_read_color/
-├── rgba.py         Color(r, g, b, a): the value every other stage uses
-├── hex_parser.py   parse_hex_color(): "#FF0066" → Color(255, 0, 102, 255)
-└── errors.py       ColorParseError
-```
-
-**What `parse_hex_color()` does.** It accepts the formats people actually type
-and rejects everything else with a message that says what to type instead.
-
-```mermaid
-flowchart LR
-    T["' #ff0066 '"] --> A["Trim spaces"] --> B["Strip optional #"]
-    B --> C{"Hex digits only?<br/>Length 3, 4, 6, 8?"}
-    C -- no --> E["Error naming the<br/>accepted formats"]
-    C -- "3 or 4" --> D["Expand short form<br/>F06 → FF0066"] --> F
-    C -- "6 or 8" --> F["Read pairs as numbers"]
-    F --> O["Color(r=255, g=0, b=102, a=255)"]
-```
-
-| Input | Meaning | Result |
-|---|---|---|
-| `#FF0066`, `#ff0066`, `FF0066`, `" #FF0066 "` | standard, any case, `#` optional | `(255, 0, 102)` solid |
-| `#F06` | short form | `(255, 0, 102)` solid |
-| `#FF006680` / `#F068` | with alpha | semi-transparent background → PNG with transparency |
-| `#00000000` | fully transparent | a plain cut-out |
-| `red`, `#GG0000`, `#FF006`, empty | invalid | error listing the accepted formats |
-
-**Design choices.**
-- **No colour names** (`red`, `navy`). The brief asks for hex, and one strict
-  format is easier to test and explain.
-- **Known trap: `#FF00` is not a typo error.** It's a valid `#RGBA` short form,
-  which means *fully transparent yellow*. It follows the CSS standard, so it is
-  accepted, and a test pins down this behaviour.
-
-### 3.3 Segmentation models
-
-✅ *All 5 models run. [`bgchange/s3_ai_models/`](bgchange/s3_ai_models/), 6 registry tests in
-[`tests/s3_ai_models/`](tests/s3_ai_models/). The default is provisional until the benchmark (step 5).*
-
-**What a model does here.** Image in, alpha matte out. Nothing else.
-
-```
- photo                       alpha matte (white = subject)
- +--------------+            +--------------+
- |  person on   |   model    |  white shape |
- |  a street    | ---------> |  on black    |
- +--------------+            +--------------+
-```
-
-**Downloaded is not the same as usable.** `models/` holds the weights (files).
-To use them, code must build the network, fill it with the weights, prepare
-each photo the way that model expects and convert its output to a 0–1 matte.
-Each model does this differently, so each has a small adapter. All adapters
-follow one rule, `predict(image) -> alpha`, and the registry picks one by name.
-
-```mermaid
-flowchart LR
-    subgraph disk["models/ (weights)"]
-        W1["birefnet/"]
-        W2["birefnet-matting/"]
-        W3["rmbg-2.0/"]
-        W4["ben2/"]
-        W5["inspyrenet/"]
-    end
-    subgraph code["bgchange/s3_ai_models/ (code)"]
-        A1["birefnet.py<br/>3 models, 1 network"]
-        A2["ben2.py"]
-        A3["inspyrenet.py"]
-        R["registry.py<br/>get_segmenter(name)<br/>one model on GPU at a time"]
-    end
-    W1 --> A1
-    W2 --> A1
-    W3 --> A1
-    W4 --> A2
-    W5 --> A3
-    A1 --> R
-    A2 --> R
-    A3 --> R
-    R --> P["Pipeline:<br/>predict(image) → alpha"]
-```
-
-```
-bgchange/s3_ai_models/
-├── base.py         the rule: predict(image) -> alpha
-├── birefnet.py     BiRefNet, BiRefNet-matting, RMBG-2.0 (same network, different training)
-├── ben2.py         BEN2
-├── inspyrenet.py   InSPyReNet
-└── registry.py     get_segmenter("ben2"); unloads the previous model first
-```
-
-| Model | How it works | Trained on / strength | License |
-|---|---|---|---|
-| `birefnet` | Looks twice: whole scene small + full detail | General subjects; suggested in the brief | MIT |
-| `birefnet-matting` | Same network as above | Matting data: soft, partly transparent edges (hair) | MIT |
-| `rmbg-2.0` | Same network as above (its config declares BiRefNet) | BRIA's 15k hand-labelled, licensed images; products | **CC BY-NC 4.0, non-commercial**: benchmarked, never the default |
-| `ben2` | 4 zoomed tiles + 1 overview, merged | Fine edges | MIT |
-| `inspyrenet` | Rough mask first, then adds edge detail level by level | High-resolution images | MIT |
-
-**Smoke test** ([`scripts/check_models.py`](scripts/check_models.py), RTX 5050 Laptop):
-
-| Model | Mask on test disc | Load (cached) | Per image | Peak VRAM | Blank grey image: max / mean |
-|---|---|---|---|---|---|
-| birefnet | OK | 2–15 s | 0.36 s | 1.58 GB | 0.00 / 0.00 |
-| birefnet-matting | OK | 2.6 s | 0.37 s | 1.58 GB | 0.74 / 0.32 |
-| rmbg-2.0 | OK | 2.3 s | 0.37 s | 1.58 GB | 1.00 / **0.95** |
-| ben2 | OK | 1.8 s | 0.47 s | 2.35 GB | 0.99 / 0.04 |
-| inspyrenet | OK | 1.8 s | 0.37 s | 3.10 GB | 0.00 / 0.00 |
-
-The "blank grey image" column asks: with no subject at all, does the model
-invent one? RMBG-2.0 calls almost the whole grey image "subject". A blank image
-is ambiguous (a grey card could be the product), so this is a lead for the
-benchmark, not a verdict.
+| `--color` | New background: `#RGB`, `#RRGGBB` or `#RRGGBBAA` (keep the quotes) | required |
+| `--shadow` | `real` (the photo's own), `fake` (computed), `mix` (both), `none` | `real` |
+| `--shadow-strength` | `0` (none) to `1` (as in the photo) | `1` |
+| `-o` | Output file | `outputs/<photo>_on_<HEX>.png` |
+| `--model` | `birefnet`, `ben2`, `inspyrenet`, `birefnet-matting`, `rmbg-2.0` (non-commercial) | `birefnet` |
+| `--no-edge-cleanup` | Skip the edge cleanup, to compare | off |
+| `--device` | `auto`, `cuda`, `cpu` | `auto` |
 
 ```bash
-uv run python scripts/check_models.py
+uv run bgchange shoe.jpg --color "#E4E0D8" --shadow mix --shadow-strength 0.7
+uv run bgchange portrait.jpg --color "#00000000" -o cutout.png
+uv run bgchange --help
 ```
 
-**Decisions and problems found while wiring the models.**
-- **Weights load from `models/`, pinned.** No hidden cache, no internet at
-  runtime. BiRefNet-family code runs via `trust_remote_code`, which is safe here
-  because it's the pinned file we downloaded and the folder name never comes
-  from user input.
-- **BEN2 and InSPyReNet both stretch their masks min-to-max** in their own
-  helpers, which turns an unsure prediction into a confident-looking one. Both
-  adapters skip that step and return the model's real probabilities.
-- **BEN2's code changes global PyTorch settings on import** (random seeds and
-  matmul precision "highest"). The adapter restores the precision so the other
-  models don't slow down.
-- **InSPyReNet gives NaN masks in fp16**, because some internal values are too
-  large for half precision. It runs in fp32, which costs it the most VRAM.
-- **InSPyReNet's package would install 24 extra packages**, including a second
-  OpenCV that clashes with ours. `pyproject.toml` declares its dependencies as
-  empty, and the adapter imports only the network files, never the package's
-  GUI or tools.
-- **Safer weight formats:** `.safetensors` where available (cannot run code),
-  and `torch.load(weights_only=True)` for InSPyReNet's `.pth`.
+Other models must be downloaded first: `uv run python scripts/download_models.py ben2`.
 
-Check your own GPU, or get the mask of one photo:
+## 3. Web interface (optional): backend + frontend
+
+An easier way for people who don't use a terminal. It gives the **same results
+as the CLI** (both call the same function).
+
+![The web page](docs/images/09_web_page_result.jpg)
+
+**Backend** (FastAPI), in a first terminal:
 
 ```bash
-uv run python scripts/check_gpu.py
+uv run bgchange-api
 ```
+
+| Route | What it does |
+|---|---|
+| `GET /api/health` | Is the API up, is the model loaded? |
+| `POST /api/change-background` | Photo + colour (+ shadow options) → the PNG |
+
+Interactive documentation: <http://127.0.0.1:8000/docs>. Details: [docs/08b-api.md](docs/08b-api.md).
+
+**Frontend** (Next.js), in a second terminal (needs [Node.js](https://nodejs.org/) 20.9 or newer):
 
 ```bash
-uv run python scripts/predict_mask.py photo.jpg
+cd frontend
+npm install
+npm run dev
 ```
 
-### 3.4 Edge cleanup (foreground estimation)
+Open <http://localhost:3000>. `npm install` only the first time (~380 MB).
 
-🚧 *Implemented in step 6.*
+## 4. Docker (optional): everything with one command
 
-**Problem.** Along hair and soft edges, pixels are a *mix* of subject and old
-background. Pasting them as-is onto pink leaves a green fringe if the old
-background was grass.
+No Python or Node needed, only [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+Runs on the CPU, so it works on any computer (~20 s per photo).
 
-**Plan.** Before blending, estimate the subject's *true* colour at each edge
-pixel (removing the old background's contribution), then blend that.
-
-### 3.5 Shadow extraction
-
-🚧 *Implemented in step 7.*
-
-**Problem.** The model marks the shadow as "not subject", so a normal cut-out
-loses it and the subject looks pasted on.
-
-**Plan.** A shadow is the background made darker. So:
-
-```mermaid
-flowchart LR
-    A["Original background<br/>(subject removed)"] --> B["Estimate how bright it would be<br/>without the shadow"]
-    A --> C["Measured brightness"]
-    B --> D["shadow = 1 - measured / expected"]
-    C --> D
-    D --> E["Keep only near the subject,<br/>smooth"]
-    E --> F["Darken the NEW colour by that amount"]
+```bash
+docker compose up --build
 ```
 
-Options: `--shadow none|keep` and `--shadow-strength 0..1`. On very busy
-backgrounds the shadow cannot be separated reliably; the tool detects this and
-warns instead of producing a dirty result.
+Open <http://localhost:3000>. The model is downloaded on the first start if it
+isn't already in `models/`. The CLI works in Docker too:
 
-### 3.6 Compositing
-
-🚧 *Implemented in step 6.*
-
-The standard blend, one line per pixel:
-
-```
-result = alpha × subject + (1 − alpha) × (new colour × shadow darkening)
+```bash
+docker compose run --rm -v "${PWD}:/work" api bgchange /work/photo.jpg --color "#FF0066" -o /work/out.png
 ```
 
-### 3.7 Architecture: CLI, API, UI
-
-🚧 *Implemented in steps 8–10.*
-
-```mermaid
-flowchart TB
-    subgraph core["bgchange (Python core)"]
-        PIPE["pipeline"]
-    end
-    CLI["CLI<br/>bgchange ..."] --> PIPE
-    API["FastAPI<br/>POST /process"] --> PIPE
-    WEB["Next.js UI"] -->|HTTP| API
-    subgraph docker["docker compose up"]
-        API
-        WEB
-    end
-```
-
-The CLI and API are thin wrappers, so both give identical results.
+Stop with `Ctrl + C` or `docker compose down`. Details: [docs/10-docker.md](docs/10-docker.md).
 
 ---
 
-## Results
+## How it works
 
-🚧 Contact sheet of the hard cases (original / mask / result / result + shadow)
-and the benchmark table go here.
-
-## What did not work / limitations
-
-🚧 Filled in honestly as things fail.
-
-## Roadmap
-
-Each step is one or more small commits.
-
-- [x] **1. Repo baseline**: structure, README plan, notes
-- [x] **2. Python env + GPU check + first model (BiRefNet)**
-- [x] **3. Input handling + hex parsing** (48 tests)
-- [x] **4. Model registry + the other 4 models**
-
-> **Why the model comes before input handling.** Getting PyTorch to run on a
-> brand-new GPU and loading the model is the riskiest part, so it is done first
-> to surface problems early. Input handling and hex parsing are plain Python and
-> low risk.
-
-Run the tests (no GPU or downloads needed):
-
-```bash
-uv run pytest
+```mermaid
+flowchart LR
+    P["photo"] --> S1["s1 load<br/>safely"] --> S3["s3 AI mask<br/>(BiRefNet)"] --> S4["s4 shadow"] --> S5["s5 clean edges<br/>+ blend"] --> O["PNG"]
+    C["#quot;#FF0066#quot;"] --> S2["s2 read<br/>colour"] --> S5
+    S1 --> S4
 ```
-- [ ] **5. Benchmark** → pick the default model
-- [ ] **6. Edge cleanup + compositing** → first full CLI result
-- [ ] **7. Shadow extraction**
-- [ ] **8. FastAPI**
-- [ ] **9. Next.js UI**
-- [ ] **10. Docker Compose** (CPU default, GPU profile)
-- [ ] **11. Results, limitations, final README**
 
-## Time spent and use of AI tools
+| Step | Folder | What it does |
+|---|---|---|
+| s1 | `bgchange/s1_load_photo/` | Opens any image safely: rotates phone photos upright, converts CMYK, 16-bit, colour profiles |
+| s2 | `bgchange/s2_read_color/` | `"#FF0066"` → red 255, green 0, blue 102 (+ transparency) |
+| s3 | `bgchange/s3_ai_models/` | The AI gives a mask: how much each pixel is subject (0 to 1). The only neural network |
+| s4 | `bgchange/s4_shadow/` | Measures how much darker the floor is near the subject's base, or computes a soft shadow |
+| s5 | `bgchange/s5_new_background/` | Removes the old background's colour from the edges, then mixes photo and colour with the mask, in linear light |
 
-Tracked as I go in [NOTES.md](NOTES.md).
+`bgchange/pipeline.py` runs the 5 steps; the CLI (`cli.py`) and the API
+(`api/`) are thin layers on top of it.
+
+## The project, step by step
+
+Each step has its own page in [docs/](docs/README.md): what was built, a diagram, the decisions and what went wrong.
+
+| # | Step | Doc |
+|---|---|---|
+| 1 | Repo baseline | [01](docs/01-repo-baseline.md) |
+| 2 | GPU setup and the first model | [02](docs/02-gpu-and-first-model.md) |
+| 3 | Loading photos safely, reading hex colours | [03](docs/03-input-handling.md) |
+| 4 | 5 segmentation models behind one interface | [04](docs/04-segmentation-models.md) |
+| 5 | Benchmark on 970 photos + eye test on 62 → BiRefNet | [05](docs/05-benchmark.md) |
+| 6a | Compositing in linear light | [06](docs/06-compositing.md) |
+| 6b | Edge cleanup | [06b](docs/06b-edge-cleanup.md) |
+| 6c | Shadows: real, fake, mix, none | [06c](docs/06c-shadows.md) |
+| 8a | The `bgchange` command | [08a](docs/08a-cli.md) |
+| 8b | The web API | [08b](docs/08b-api.md) |
+| 9 | The web page | [09](docs/09-web-page.md) |
+| 10 | Docker | [10](docs/10-docker.md) |
+
+## Limitations
+
+- **Ambiguous subjects:** in "a person holding a cup", the AI may keep only the cup.
+- **Real shadow on busy photos:** small smudges of floor texture can remain near the feet; `--shadow fake` or `none` is cleaner there.
+- **Edge cleanup** can add a soft glow where the AI's mask is blurry; `--no-edge-cleanup` turns it off.
+- **CPU is slow** (~20 s per photo vs ~2 s on a GPU). Docker runs on the CPU.
+- **RMBG-2.0** is non-commercial (CC BY-NC 4.0): available, never the default.
+
+## Time spent and use of AI
+
+See [NOTES.md](NOTES.md).

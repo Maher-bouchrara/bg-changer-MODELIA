@@ -1,7 +1,7 @@
 # Working notes
 
 A running log of time spent, decisions in progress and how AI tools were used.
-Kept honest and short; the polished version of the decisions lives in the README.
+Kept honest and short; the polished version of the decisions lives in docs/ (one page per step).
 
 ## Time log
 
