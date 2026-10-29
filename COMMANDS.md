@@ -36,6 +36,17 @@ uv run python scripts/run_benchmark.py --model all
 
 Results: `benchmarks\results\summary.md` (scores) and `benchmarks\results\<model>\masks\` (every mask).
 
+## 4. Compare the models side by side on a folder of photos
+
+```
+uv run python scripts/compare_models.py test_data/real-photos/images
+```
+
+Any folder works (also your own photos). Results: `comparisons\<folder>\sheet_01.png`, ...
+Each row = one photo, each column = one model's cut-out on pink.
+Photos where the models disagree most come first.
+Choose models: add `--model birefnet ben2`.
+
 ## Models
 
 `birefnet` (default), `birefnet-matting`, `rmbg-2.0`, `ben2`, `inspyrenet`

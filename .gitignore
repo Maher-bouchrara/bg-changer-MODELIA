@@ -19,6 +19,7 @@ hf_cache/
 
 # --- Outputs (generated results; curated examples go in docs/images/) ---
 outputs/
+comparisons/
 benchmarks/results/
 
 # --- Node / Next.js ---
