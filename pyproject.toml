@@ -24,6 +24,11 @@ dependencies = [
     "transparent-background==1.3.4",
 ]
 
+# The `bgchange` command: `uv run bgchange photo.jpg --color "#FF0066"` runs
+# main() in bgchange/cli.py.
+[project.scripts]
+bgchange = "bgchange.cli:main"
+
 [dependency-groups]
 dev = [
     "pyarrow>=15",
