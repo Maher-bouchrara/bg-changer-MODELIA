@@ -6,14 +6,16 @@ Run:
     uv run python scripts/change_background.py photo.jpg --color "#00000000"    # plain cut-out
     uv run python scripts/change_background.py photo.jpg --color "#FF0066" -o result.png
     uv run python scripts/change_background.py photo.jpg --color "#FF0066" --no-edge-cleanup
+    uv run python scripts/change_background.py photo.jpg --color "#FF0066" --shadow fake    # real, fake, mix, none
+    uv run python scripts/change_background.py photo.jpg --color "#FF0066" --shadow-strength 0.5
 
 The steps, each from its own package:
 
     1. load the photo      bgchange/s1_load_photo/        (EXIF rotation, CMYK, 16-bit...)
     2. read the colour     bgchange/s2_read_color/        ("#FF0066" -> Color)
     3. predict the mask    bgchange/s3_ai_models/         (BiRefNet by default)
+    4. make the shadow     bgchange/s4_shadow/            (the photo's real one by default)
     5. clean edges, blend  bgchange/s5_new_background/    -> outputs/photo_on_FF0066.png
-    (step 4, the shadow, comes later)
 
 The colour is checked before the model is loaded, so a typo fails at once
 instead of after several seconds of loading.
@@ -26,7 +28,16 @@ from pathlib import Path
 from bgchange.s1_load_photo import ImageLoadError, load_image
 from bgchange.s2_read_color import ColorParseError, parse_hex_color
 from bgchange.s3_ai_models import DEFAULT_MODEL, MODELS, get_segmenter
+from bgchange.s4_shadow import SHADOW_KINDS, make_shadow
 from bgchange.s5_new_background import composite, default_output_path, save_png
+
+
+def strength(text: str) -> float:
+    """--shadow-strength: a number from 0 (no shadow) to 1 (the shadow as computed)."""
+    value = float(text)
+    if not 0.0 <= value <= 1.0:
+        raise argparse.ArgumentTypeError(f"must be between 0 and 1, got {value}")
+    return value
 
 
 def main() -> None:
@@ -41,6 +52,18 @@ def main() -> None:
         "--no-edge-cleanup",
         action="store_true",
         help="skip removing the old background from the edges (to compare); saves *_no-cleanup.png",
+    )
+    parser.add_argument(
+        "--shadow",
+        default=SHADOW_KINDS[0],
+        choices=SHADOW_KINDS,
+        help="real = the photo's own shadow (default), fake = computed from the outline, mix = both, none",
+    )
+    parser.add_argument(
+        "--shadow-strength",
+        type=strength,
+        default=1.0,
+        help="how dark the shadow is: 0 = none, 1 = as computed (default: 1)",
     )
     parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     args = parser.parse_args()
@@ -68,12 +91,20 @@ def main() -> None:
     mask = segmenter.predict(loaded.rgb)
     print(f"mask   : {time.perf_counter() - start:.2f}s (first run includes GPU warm-up)")
 
-    # 4: blend and save.
+    # 4: the shadow.
     start = time.perf_counter()
-    result = composite(loaded.rgb, mask, color, clean_edges=not args.no_edge_cleanup)
+    shadow = make_shadow(args.shadow, loaded.rgb, mask, args.shadow_strength)
+    print(f"shadow : {args.shadow}, strength {args.shadow_strength:g}, {time.perf_counter() - start:.2f}s")
+
+    # 5: blend and save.
+    start = time.perf_counter()
+    result = composite(loaded.rgb, mask, color, clean_edges=not args.no_edge_cleanup, shadow=shadow)
     output = args.output or default_output_path(args.image, color)
-    if args.no_edge_cleanup and not args.output:
-        output = output.with_stem(output.stem + "_no-cleanup")  # keep both versions side by side
+    if not args.output:  # keep the versions side by side when comparing options
+        if args.no_edge_cleanup:
+            output = output.with_stem(output.stem + "_no-cleanup")
+        if args.shadow != SHADOW_KINDS[0]:
+            output = output.with_stem(f"{output.stem}_shadow-{args.shadow}")
     output = save_png(result, output)
     print(f"blend  : {time.perf_counter() - start:.2f}s")
     print(f"saved  : {output}")

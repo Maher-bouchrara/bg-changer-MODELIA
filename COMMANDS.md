@@ -20,6 +20,7 @@ uv run python scripts/change_background.py "C:\path\to\photo.jpg" --color "#FF00
 Result: `outputs\photo_on_FF0066.png`. Add `--model ben2` to use another model.
 `--color "#00000000"` gives a transparent cut-out.
 `--no-edge-cleanup` skips the edge cleanup, to compare (saves `..._no-cleanup.png`).
+`--shadow real` (default), `fake`, `mix` or `none` chooses the shadow; `--shadow-strength 0.5` makes it lighter.
 
 ## 2b. Only the mask of one photo
 
