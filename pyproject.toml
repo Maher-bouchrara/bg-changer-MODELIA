@@ -22,15 +22,23 @@ dependencies = [
     "opencv-python-headless>=4.10",
     # InSPyReNet's network code. Its own dependencies are removed below.
     "transparent-background==1.3.4",
+    # The optional web API (bgchange/api/): the framework, the server that runs
+    # it, and the reader for file uploads.
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "python-multipart>=0.0.12",
 ]
 
 # The `bgchange` command: `uv run bgchange photo.jpg --color "#FF0066"` runs
-# main() in bgchange/cli.py.
+# main() in bgchange/cli.py. `uv run bgchange-api` starts the optional web API.
 [project.scripts]
 bgchange = "bgchange.cli:main"
+bgchange-api = "bgchange.api.server:main"
 
 [dependency-groups]
 dev = [
+    # Used by FastAPI's TestClient in tests/api/.
+    "httpx>=0.27",
     "pyarrow>=15",
     "pytest>=8.0",
 ]

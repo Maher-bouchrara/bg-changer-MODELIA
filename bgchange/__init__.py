@@ -14,9 +14,10 @@ goes through them, so each one can be read, tested and swapped on its own:
     pipeline.py          change_background(): runs s1 -> s5; the one function
                          the command and the API both call
     cli.py               the `bgchange` command: uv run bgchange photo.jpg --color "#FF0066"
+    api/                 the optional web API: uv run bgchange-api
 
-The command and, later, the web API are thin wrappers around pipeline.py, so
-both always produce identical results.
+The command and the web API are thin wrappers around pipeline.py, so both
+always produce identical results.
 """
 
 __version__ = "0.1.0"
