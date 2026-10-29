@@ -11,7 +11,16 @@ uv run python scripts/download_models.py
 uv run python scripts/download_test_data.py
 ```
 
-## 2. Run a model on one photo
+## 2. Change the background of one photo
+
+```
+uv run python scripts/change_background.py "C:\path\to\photo.jpg" --color "#FF0066"
+```
+
+Result: `outputs\photo_on_FF0066.png`. Add `--model ben2` to use another model.
+`--color "#00000000"` gives a transparent cut-out.
+
+## 2b. Only the mask of one photo
 
 ```
 uv run python scripts/predict_mask.py "C:\path\to\photo.jpg" --model birefnet
