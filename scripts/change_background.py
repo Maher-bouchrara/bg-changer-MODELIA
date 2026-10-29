@@ -5,13 +5,14 @@ Run:
     uv run python scripts/change_background.py photo.jpg --color "#FF0066" --model ben2
     uv run python scripts/change_background.py photo.jpg --color "#00000000"    # plain cut-out
     uv run python scripts/change_background.py photo.jpg --color "#FF0066" -o result.png
+    uv run python scripts/change_background.py photo.jpg --color "#FF0066" --no-edge-cleanup
 
 The steps, each from its own package:
 
     1. load the photo      bgchange/s1_load_photo/        (EXIF rotation, CMYK, 16-bit...)
     2. read the colour     bgchange/s2_read_color/        ("#FF0066" -> Color)
     3. predict the mask    bgchange/s3_ai_models/         (BiRefNet by default)
-    5. blend + save        bgchange/s5_new_background/    -> outputs/photo_on_FF0066.png
+    5. clean edges, blend  bgchange/s5_new_background/    -> outputs/photo_on_FF0066.png
     (step 4, the shadow, comes later)
 
 The colour is checked before the model is loaded, so a typo fails at once
@@ -36,6 +37,11 @@ def main() -> None:
         "--model", default=DEFAULT_MODEL, choices=list(MODELS), help=f"which model to use (default: {DEFAULT_MODEL})"
     )
     parser.add_argument("-o", "--output", type=Path, help="where to save the PNG")
+    parser.add_argument(
+        "--no-edge-cleanup",
+        action="store_true",
+        help="skip removing the old background from the edges (to compare); saves *_no-cleanup.png",
+    )
     parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     args = parser.parse_args()
 
@@ -64,8 +70,11 @@ def main() -> None:
 
     # 4: blend and save.
     start = time.perf_counter()
-    result = composite(loaded.rgb, mask, color)
-    output = save_png(result, args.output or default_output_path(args.image, color))
+    result = composite(loaded.rgb, mask, color, clean_edges=not args.no_edge_cleanup)
+    output = args.output or default_output_path(args.image, color)
+    if args.no_edge_cleanup and not args.output:
+        output = output.with_stem(output.stem + "_no-cleanup")  # keep both versions side by side
+    output = save_png(result, output)
     print(f"blend  : {time.perf_counter() - start:.2f}s")
     print(f"saved  : {output}")
 

@@ -19,6 +19,7 @@ uv run python scripts/change_background.py "C:\path\to\photo.jpg" --color "#FF00
 
 Result: `outputs\photo_on_FF0066.png`. Add `--model ben2` to use another model.
 `--color "#00000000"` gives a transparent cut-out.
+`--no-edge-cleanup` skips the edge cleanup, to compare (saves `..._no-cleanup.png`).
 
 ## 2b. Only the mask of one photo
 
