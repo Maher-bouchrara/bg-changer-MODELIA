@@ -1,0 +1,11 @@
+# What the API image is built from: only these files (everything else is left
+# out, so the build is fast and the image small: no models, test photos,
+# results, virtual environment or web page).
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!bgchange/
+!scripts/
+!docker/
+**/__pycache__
