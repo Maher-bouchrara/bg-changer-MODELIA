@@ -15,8 +15,8 @@ cheaper.
 ```
 pyproject.toml                  dependencies; PyTorch from the CUDA 12.8 index
 bgchange/device.py              GPU if available, else CPU; fp16 on GPU
-bgchange/segmenters/base.py     the rule every model follows: predict(image) -> alpha
-bgchange/segmenters/birefnet.py BiRefNet
+bgchange/s3_ai_models/base.py     the rule every model follows: predict(image) -> alpha
+bgchange/s3_ai_models/birefnet.py BiRefNet
 scripts/check_gpu.py            what PyTorch sees + a real GPU computation
 scripts/predict_mask.py         save the mask of one photo
 ```

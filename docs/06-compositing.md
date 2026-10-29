@@ -33,7 +33,7 @@ mask = 0.3  → 30% photo + 70% colour   (soft edge, hair)
 ## The code
 
 ```
-bgchange/compose/
+bgchange/s5_new_background/
 ├── linear_light.py   sRGB ↔ linear light
 ├── background.py     a plain layer of the chosen colour
 ├── blend.py          composite(): the formula above
@@ -65,7 +65,7 @@ light of each. So the mix must be done on light:
 | Mixing pixel values | 128 | too dark: grey outline around soft edges |
 | **Mixing light (ours)** | **188** | what a camera would see |
 
-`tests/compose/test_blend.py` checks exactly this case.
+`tests/s5_new_background/test_blend.py` checks exactly this case.
 
 ### Transparent colours: the "over" operator
 

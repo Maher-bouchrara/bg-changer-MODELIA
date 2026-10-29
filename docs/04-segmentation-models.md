@@ -14,7 +14,7 @@ flowchart LR
         W4["ben2/"]
         W5["inspyrenet/"]
     end
-    subgraph code["bgchange/segmenters/ (code)"]
+    subgraph code["bgchange/s3_ai_models/ (code)"]
         A1["birefnet.py<br/>3 models, 1 network"]
         A2["ben2.py"]
         A3["inspyrenet.py"]
@@ -53,7 +53,7 @@ and converts its output into a 0–1 matte.
 Like a phone's contact list: ask for a name, get a ready model.
 
 ```python
-from bgchange.segmenters import get_segmenter
+from bgchange.s3_ai_models import get_segmenter
 alpha = get_segmenter("ben2").predict(image)
 ```
 

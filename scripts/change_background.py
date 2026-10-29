@@ -8,10 +8,11 @@ Run:
 
 The steps, each from its own package:
 
-    1. load the photo          bgchange/io/          (EXIF rotation, CMYK, 16-bit...)
-    2. parse the colour        bgchange/color/       ("#FF0066" -> Color)
-    3. predict the mask        bgchange/segmenters/  (BiRefNet by default)
-    4. blend + save            bgchange/compose/     -> outputs/photo_on_FF0066.png
+    1. load the photo      bgchange/s1_load_photo/        (EXIF rotation, CMYK, 16-bit...)
+    2. read the colour     bgchange/s2_read_color/        ("#FF0066" -> Color)
+    3. predict the mask    bgchange/s3_ai_models/         (BiRefNet by default)
+    5. blend + save        bgchange/s5_new_background/    -> outputs/photo_on_FF0066.png
+    (step 4, the shadow, comes later)
 
 The colour is checked before the model is loaded, so a typo fails at once
 instead of after several seconds of loading.
@@ -21,10 +22,10 @@ import argparse
 import time
 from pathlib import Path
 
-from bgchange.color import ColorParseError, parse_hex_color
-from bgchange.compose import composite, default_output_path, save_png
-from bgchange.io import ImageLoadError, load_image
-from bgchange.segmenters import DEFAULT_MODEL, MODELS, get_segmenter
+from bgchange.s1_load_photo import ImageLoadError, load_image
+from bgchange.s2_read_color import ColorParseError, parse_hex_color
+from bgchange.s3_ai_models import DEFAULT_MODEL, MODELS, get_segmenter
+from bgchange.s5_new_background import composite, default_output_path, save_png
 
 
 def main() -> None:

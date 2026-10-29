@@ -7,16 +7,16 @@ message instead of a crash.
 ```
 bgchange photo.jpg  --color "#FF0066"
          ─────────          ─────────
-         bgchange/io/       bgchange/color/
+         bgchange/s1_load_photo/       bgchange/s2_read_color/
 ```
 
 The two inputs never depend on each other, so each has its own folder, with
 **one file per step** so every file can be read on its own.
 
-## Part 1: loading the photo (`bgchange/io/`)
+## Part 1: loading the photo (`bgchange/s1_load_photo/`)
 
 ```
-bgchange/io/
+bgchange/s1_load_photo/
 ├── loader.py          load_image(): runs the 4 steps below, in order
 ├── open_file.py       1. open + validate
 ├── exif_rotation.py   2. rotate phone photos upright
@@ -58,10 +58,10 @@ flowchart TB
 
 Every fix adds a sentence to `notes`, so nothing happens silently.
 
-## Part 2: parsing the colour (`bgchange/color/`)
+## Part 2: parsing the colour (`bgchange/s2_read_color/`)
 
 ```
-bgchange/color/
+bgchange/s2_read_color/
 ├── rgba.py         Color(r, g, b, a): the value the pipeline uses
 ├── hex_parser.py   parse_hex_color(): "#FF0066" → Color(255, 0, 102, 255)
 └── errors.py       ColorParseError

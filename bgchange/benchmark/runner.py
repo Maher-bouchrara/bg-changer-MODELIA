@@ -1,7 +1,7 @@
 """The benchmark loop: for each test photo, predict a mask and score it.
 
     for each photo:
-        1. load the photo        (bgchange.io, the same loader as the real tool)
+        1. load the photo        (bgchange.s1_load_photo, the same loader as the real tool)
         2. model predicts        (GPU) -> saved to results/<model>/masks/<set>/<name>.png
         3. compare with answer   (metrics.py) -> one row appended to results/<model>/scores.csv
 
@@ -23,8 +23,8 @@ from PIL import Image
 
 from bgchange.benchmark.dataset import Sample, list_samples
 from bgchange.benchmark.metrics import boundary_f, f_measure, mae
-from bgchange.io import load_image
 from bgchange.paths import PROJECT_ROOT
+from bgchange.s1_load_photo import load_image
 
 #: Where results go (gitignored): results/<model>/scores.csv and masks/.
 RESULTS_DIR = PROJECT_ROOT / "benchmarks" / "results"
@@ -56,7 +56,7 @@ def run(
     """
     import torch
 
-    from bgchange.segmenters import get_segmenter
+    from bgchange.s3_ai_models import get_segmenter
 
     out_dir = results_dir / model_name
     scores_path = out_dir / "scores.csv"

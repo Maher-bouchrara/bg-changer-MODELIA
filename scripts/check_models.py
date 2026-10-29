@@ -22,7 +22,7 @@ import time
 import torch
 from PIL import Image, ImageDraw
 
-from bgchange.segmenters import MODELS, get_segmenter, unload
+from bgchange.s3_ai_models import MODELS, get_segmenter, unload
 
 
 def _disc_image() -> Image.Image:

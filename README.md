@@ -86,12 +86,12 @@ choose**, and **why**.
 
 ### 3.1 Input handling
 
-✅ *[`bgchange/io/`](bgchange/io/), 18 tests in [`tests/io/`](tests/io/).*
+✅ *[`bgchange/s1_load_photo/`](bgchange/s1_load_photo/), 18 tests in [`tests/s1_load_photo/`](tests/s1_load_photo/).*
 
 One file per step, so each can be read on its own:
 
 ```
-bgchange/io/
+bgchange/s1_load_photo/
 ├── loader.py          load_image(): runs steps 1 → 4, returns a LoadedImage
 ├── open_file.py       1. open + validate (not an image? truncated? too big?)
 ├── exif_rotation.py   2. rotate phone photos upright
@@ -147,10 +147,10 @@ flowchart TB
 
 ### 3.2 Hex colour parsing
 
-✅ *[`bgchange/color/`](bgchange/color/), 30 tests in [`tests/color/`](tests/color/).*
+✅ *[`bgchange/s2_read_color/`](bgchange/s2_read_color/), 30 tests in [`tests/s2_read_color/`](tests/s2_read_color/).*
 
 ```
-bgchange/color/
+bgchange/s2_read_color/
 ├── rgba.py         Color(r, g, b, a): the value every other stage uses
 ├── hex_parser.py   parse_hex_color(): "#FF0066" → Color(255, 0, 102, 255)
 └── errors.py       ColorParseError
@@ -186,8 +186,8 @@ flowchart LR
 
 ### 3.3 Segmentation models
 
-✅ *All 5 models run. [`bgchange/segmenters/`](bgchange/segmenters/), 6 registry tests in
-[`tests/segmenters/`](tests/segmenters/). The default is provisional until the benchmark (step 5).*
+✅ *All 5 models run. [`bgchange/s3_ai_models/`](bgchange/s3_ai_models/), 6 registry tests in
+[`tests/s3_ai_models/`](tests/s3_ai_models/). The default is provisional until the benchmark (step 5).*
 
 **What a model does here.** Image in, alpha matte out. Nothing else.
 
@@ -214,7 +214,7 @@ flowchart LR
         W4["ben2/"]
         W5["inspyrenet/"]
     end
-    subgraph code["bgchange/segmenters/ (code)"]
+    subgraph code["bgchange/s3_ai_models/ (code)"]
         A1["birefnet.py<br/>3 models, 1 network"]
         A2["ben2.py"]
         A3["inspyrenet.py"]
@@ -232,7 +232,7 @@ flowchart LR
 ```
 
 ```
-bgchange/segmenters/
+bgchange/s3_ai_models/
 ├── base.py         the rule: predict(image) -> alpha
 ├── birefnet.py     BiRefNet, BiRefNet-matting, RMBG-2.0 (same network, different training)
 ├── ben2.py         BEN2

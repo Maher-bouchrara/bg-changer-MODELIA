@@ -27,9 +27,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from bgchange.io import ImageLoadError, load_image
 from bgchange.paths import PROJECT_ROOT
-from bgchange.segmenters import MODELS, get_segmenter, unload
+from bgchange.s1_load_photo import ImageLoadError, load_image
+from bgchange.s3_ai_models import MODELS, get_segmenter, unload
 
 OUT_ROOT = PROJECT_ROOT / "comparisons"
 BACKGROUND = (255, 0, 102)  # pink: makes leftover background and missing parts easy to see

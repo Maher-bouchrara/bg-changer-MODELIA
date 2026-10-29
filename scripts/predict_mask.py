@@ -8,7 +8,7 @@ Run:
 The mask goes to outputs/<photo>_<model>_mask.png by default (white = subject,
 black = background), so masks from different models never overwrite each other.
 
-It loads the photo with the same loader as the real pipeline (bgchange/io/),
+It loads the photo with the same loader as the real pipeline (bgchange/s1_load_photo/),
 so EXIF rotation, CMYK, 16-bit files etc. are handled here too.
 """
 
@@ -20,8 +20,8 @@ import numpy as np
 import torch
 from PIL import Image
 
-from bgchange.io import ImageLoadError, load_image
-from bgchange.segmenters import DEFAULT_MODEL, MODELS, get_segmenter
+from bgchange.s1_load_photo import ImageLoadError, load_image
+from bgchange.s3_ai_models import DEFAULT_MODEL, MODELS, get_segmenter
 
 
 def main() -> None:

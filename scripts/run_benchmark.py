@@ -22,7 +22,7 @@ import argparse
 from bgchange.benchmark.dataset import SETS
 from bgchange.benchmark.report import write_report
 from bgchange.benchmark.runner import RESULTS_DIR, run
-from bgchange.segmenters import MODELS, unload
+from bgchange.s3_ai_models import MODELS, unload
 
 
 def main() -> None:
