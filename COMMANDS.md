@@ -31,6 +31,15 @@ Result: `outputs\photo_on_FF0066.png`.
 
 `uv run python scripts/change_background.py ...` still works and does exactly the same.
 
+## 2a. Optional: the web API
+
+```
+uv run bgchange-api
+```
+
+Keep this terminal open, then open http://127.0.0.1:8000/docs in a browser
+(click a route, "Try it out"). Stop it with **Ctrl + C**.
+
 ## 2b. Only the mask of one photo
 
 ```
