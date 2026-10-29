@@ -11,16 +11,25 @@ uv run python scripts/download_models.py
 uv run python scripts/download_test_data.py
 ```
 
-## 2. Change the background of one photo
+## 2. Change the background of one photo (the main command)
 
 ```
-uv run python scripts/change_background.py "C:\path\to\photo.jpg" --color "#FF0066"
+uv run bgchange "C:\path\to\photo.jpg" --color "#FF0066"
 ```
 
-Result: `outputs\photo_on_FF0066.png`. Add `--model ben2` to use another model.
-`--color "#00000000"` gives a transparent cut-out.
-`--no-edge-cleanup` skips the edge cleanup, to compare (saves `..._no-cleanup.png`).
-`--shadow real` (default), `fake`, `mix` or `none` chooses the shadow; `--shadow-strength 0.5` makes it lighter.
+Result: `outputs\photo_on_FF0066.png`.
+
+| Add | Does |
+|---|---|
+| `--shadow fake` | shadow: `real` (default), `fake`, `mix` or `none` |
+| `--shadow-strength 0.5` | lighter shadow (0 to 1) |
+| `--color "#00000000"` | transparent cut-out |
+| `-o result.png` | choose the output file |
+| `--model ben2` | another AI model |
+| `--no-edge-cleanup` | skip the edge cleanup, to compare |
+| `--help` | all options |
+
+`uv run python scripts/change_background.py ...` still works and does exactly the same.
 
 ## 2b. Only the mask of one photo
 
