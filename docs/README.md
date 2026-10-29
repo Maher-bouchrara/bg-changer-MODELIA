@@ -13,7 +13,7 @@ were made and why, and what went wrong**.
 | 5 | [Benchmark: which model is best?](05-benchmark.md) | ✅ BiRefNet chosen |
 | 6a | [Compositing: the subject on the new colour](06-compositing.md) | ✅ |
 | 6b | [Edge cleanup: remove the old background from the edges](06b-edge-cleanup.md) | ✅ |
-| 7 | Shadow extraction | ⬜ |
+| 6c | [Shadows: real, fake, both or none](06c-shadows.md) | ✅ |
 | 8–10 | API, web interface, Docker | ⬜ |
 
 ## The whole pipeline in one picture
@@ -23,10 +23,10 @@ flowchart LR
     IMG["Photo"] --> IN["Step 3<br/>load safely"]
     HEX["#FF0066"] --> HP["Step 3<br/>parse colour"]
     IN --> SEG["Steps 2, 4, 5<br/>AI model<br/>→ alpha matte"]
-    SEG --> FG["Step 6<br/>clean edges"]
-    IN --> SH["Step 7<br/>shadow"]
+    SEG --> FG["Step 6b<br/>clean edges"]
+    IN --> SH["Step 6c<br/>shadow"]
     SEG --> SH
-    FG --> CMP["Step 6<br/>composite"]
+    FG --> CMP["Step 6a<br/>composite"]
     HP --> CMP
     SH --> CMP
     CMP --> OUT["Result PNG"]
