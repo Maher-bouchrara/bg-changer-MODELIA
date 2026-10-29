@@ -22,6 +22,9 @@ outputs/
 comparisons/
 benchmarks/results/
 
+# --- Product video (HyperFrames project, voice, music, renders; kept local) ---
+video/
+
 # --- Node / Next.js ---
 node_modules/
 .next/
