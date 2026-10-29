@@ -1,0 +1,44 @@
+# One command for the optional web interface:
+#
+#   docker compose up --build        then open http://localhost:3000
+#
+# The CLI works through Docker too (the photo's folder is mounted at /work):
+#
+#   docker compose run --rm -v "${PWD}:/work" api bgchange /work/photo.jpg --color "#FF0066" -o /work/photo_out.png
+#
+# Runs on the CPU (works on any computer; ~20 s per photo). See docs/10-docker.md.
+
+name: bgchange
+
+services:
+  api:
+    build: .
+    image: bgchange-api
+    ports:
+      - "8000:8000"
+    environment:
+      BGCHANGE_MODEL: birefnet
+      BGCHANGE_DEVICE: cpu
+      BGCHANGE_CORS_ORIGINS: http://localhost:3000
+    volumes:
+      # The weights: reused if already downloaded, downloaded here once if not.
+      - ./models:/app/models
+    healthcheck:
+      # Healthy = the API answers AND the model is loaded.
+      test: ["CMD", "python", "-c", "import urllib.request, sys; sys.exit(0 if b'\"model_loaded\":true' in urllib.request.urlopen('http://127.0.0.1:8000/api/health').read() else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10m # first start may download the model (425 MB)
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    image: bgchange-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy

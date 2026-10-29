@@ -52,7 +52,18 @@ npm run dev
 
 Open http://localhost:3000. Stop it with **Ctrl + C**.
 
-## 2c. Only the mask of one photo
+## 2c. Optional: everything with Docker (no Python or Node needed)
+
+Start Docker Desktop first. Stop `bgchange-api` / `npm run dev` if they run (same ports).
+
+```
+docker compose up --build
+```
+
+Open http://localhost:3000. Runs on the CPU (~20 s per photo). Stop with **Ctrl + C**,
+or `docker compose down` from another terminal.
+
+## 2d. Only the mask of one photo
 
 ```
 uv run python scripts/predict_mask.py "C:\path\to\photo.jpg" --model birefnet
