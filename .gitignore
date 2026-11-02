@@ -11,6 +11,7 @@ models/*
 !models/README.md
 test_data/*
 !test_data/README.md
+!test_data/photo_sources.csv
 .cache/
 hf_cache/
 *.safetensors
