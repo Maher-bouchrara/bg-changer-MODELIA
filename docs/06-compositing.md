@@ -38,7 +38,7 @@ bgchange/s5_new_background/
 ├── background.py     a plain layer of the chosen colour
 ├── blend.py          composite(): the formula above
 └── save.py           outputs/<photo>_on_<HEX>.png, always PNG
-scripts/change_background.py   the command that runs all the steps
+(the command came later: `bgchange`, step 8a)
 ```
 
 ## Decisions
@@ -103,11 +103,11 @@ The API (step 8) will load the model once and keep it in memory.
 ## Run it
 
 ```bash
-uv run python scripts/change_background.py photo.jpg --color "#FF0066"
+uv run bgchange photo.jpg --color "#FF0066"
 ```
 
 ```bash
-uv run python scripts/change_background.py photo.jpg --color "#00000000"
+uv run bgchange photo.jpg --color "#00000000"
 ```
 
 Result: `outputs/photo_on_FF0066.png`.

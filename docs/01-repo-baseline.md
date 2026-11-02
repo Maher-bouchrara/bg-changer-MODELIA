@@ -12,7 +12,7 @@ Bg-changer/
 ├── .gitignore       keeps weights, test images, results and secrets out of git
 ├── .python-version  3.12
 ├── bgchange/        the Python package (empty at this point)
-├── examples/        list of hard cases to test with
+├── examples/        list of hard cases to test with (removed later: the test photos live in test_data/)
 └── benchmarks/      plan for the model comparison
 ```
 

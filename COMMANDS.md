@@ -24,12 +24,11 @@ Result: `outputs\photo_on_FF0066.png`.
 | `--shadow fake` | shadow: `real` (default), `fake`, `mix` or `none` |
 | `--shadow-strength 0.5` | lighter shadow (0 to 1) |
 | `--color "#00000000"` | transparent cut-out |
+| `--background table.jpg` | a picture instead of a colour |
 | `-o result.png` | choose the output file |
 | `--model ben2` | another AI model |
 | `--no-edge-cleanup` | skip the edge cleanup, to compare |
 | `--help` | all options |
-
-`uv run python scripts/change_background.py ...` still works and does exactly the same.
 
 ## 2a. Optional: the web API
 

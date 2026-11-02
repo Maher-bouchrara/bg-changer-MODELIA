@@ -98,11 +98,11 @@ exactly as it was.
 ## Run it
 
 ```bash
-uv run python scripts/change_background.py photo.jpg --color "#FF0066"
+uv run bgchange photo.jpg --color "#FF0066"
 ```
 
 ```bash
-uv run python scripts/change_background.py photo.jpg --color "#FF0066" --no-edge-cleanup
+uv run bgchange photo.jpg --color "#FF0066" --no-edge-cleanup
 ```
 
 The second one saves `outputs/photo_on_FF0066_no-cleanup.png`, so both versions

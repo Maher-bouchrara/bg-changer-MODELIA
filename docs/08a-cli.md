@@ -24,7 +24,6 @@ flowchart TB
 | `bgchange/pipeline.py` | `change_background(photo, colour, shadow=..., ...)` runs the 5 steps and returns a `Result`: the image, the colour, the loader's notes, the time of each part. It does not save or print |
 | `bgchange/cli.py` | `main()`: reads the options, calls `change_background()`, saves the PNG, prints a short report |
 | `pyproject.toml` | `[project.scripts] bgchange = "bgchange.cli:main"` turns `main()` into the `bgchange` command |
-| `scripts/change_background.py` | Now 2 lines that call `main()`, so the older command still works |
 
 ## Decisions
 

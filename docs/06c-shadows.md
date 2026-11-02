@@ -118,11 +118,11 @@ Sources: [Awesome Object Shadow Generation](https://github.com/bcmi/Awesome-Obje
 ## Run it
 
 ```bash
-uv run python scripts/change_background.py photo.jpg --color "#FF0066"
+uv run bgchange photo.jpg --color "#FF0066"
 ```
 
 ```bash
-uv run python scripts/change_background.py photo.jpg --color "#FF0066" --shadow mix --shadow-strength 0.7
+uv run bgchange photo.jpg --color "#FF0066" --shadow mix --shadow-strength 0.7
 ```
 
 A choice other than `real` adds it to the file name, e.g.
