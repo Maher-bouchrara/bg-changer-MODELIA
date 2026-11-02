@@ -1,7 +1,7 @@
 // The 2 calls to the bgchange API, in one place.
 //
 //   getHealth()           GET  /api/health             is the API up, is the model loaded?
-//   changeBackground()    POST /api/change-background  photo + colour -> PNG
+//   changeBackground()    POST /api/change-background  photo + colour or picture -> PNG
 //
 // The API is the Python server started with `uv run bgchange-api`
 // (docs/08b-api.md). Its address comes from NEXT_PUBLIC_API_URL so Docker can
@@ -53,15 +53,19 @@ export type ChangeResult = {
 /** An error with the API's own sentence, ready to show to the user. */
 export class ApiError extends Error {}
 
+/** The new background: a hex colour, or a picture to put behind the subject. */
+export type Background = { color: string } | { picture: File };
+
 export async function changeBackground(
   photo: File,
-  color: string,
+  background: Background,
   shadow: ShadowKind,
   shadowStrength: number,
 ): Promise<ChangeResult> {
   const form = new FormData();
   form.append("image", photo);
-  form.append("color", color.trim());
+  if ("color" in background) form.append("color", background.color.trim());
+  else form.append("background", background.picture);
   form.append("shadow", shadow);
   form.append("shadow_strength", String(shadowStrength));
 

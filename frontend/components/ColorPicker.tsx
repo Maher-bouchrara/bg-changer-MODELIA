@@ -1,6 +1,6 @@
 "use client";
 
-// Step 02: the new background colour.
+// Step 02, "Colour": the new background colour (inside BackgroundPicker).
 //
 // Three ways, all kept in sync: a few swatches, a hex box (any format the CLI
 // accepts, e.g. #FF0066 or #00000000 for a transparent cut-out), and the
@@ -34,8 +34,7 @@ export function ColorPicker({ color, onChange }: Props) {
   const nativeValue = (valid && toSixDigits(color)) || "#ffffff";
 
   return (
-    <fieldset className="step">
-      <legend className="step-label">02 Colour</legend>
+    <>
       <div className="swatches">
         {SWATCHES.map((s) => (
           <button
@@ -82,6 +81,6 @@ export function ColorPicker({ color, onChange }: Props) {
           Use a hex colour such as #FF0066.
         </p>
       )}
-    </fieldset>
+    </>
   );
 }

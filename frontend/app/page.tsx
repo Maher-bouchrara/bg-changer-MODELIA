@@ -5,14 +5,14 @@
 //
 //   header        name + links (CLI, API docs, GitHub)
 //   ApiStatus     banner if the API isn't running
-//   controls      01 PhotoDrop, 02 ColorPicker, 03 ShadowControls, the button
+//   controls      01 PhotoDrop, 02 BackgroundPicker (colour or picture), 03 ShadowControls, the button
 //   result        empty / working / BeforeAfter + download
 //   footer        the CLI command: the main way to use the project
 
 import { useEffect, useState } from "react";
 import { ApiStatus } from "@/components/ApiStatus";
 import { BeforeAfter } from "@/components/BeforeAfter";
-import { ColorPicker } from "@/components/ColorPicker";
+import { BackgroundPicker, type BackgroundMode } from "@/components/BackgroundPicker";
 import { PhotoDrop } from "@/components/PhotoDrop";
 import { ShadowControls } from "@/components/ShadowControls";
 import { API_URL, ApiError, changeBackground, isHexColor, type ChangeResult, type ShadowKind } from "@/lib/api";
@@ -28,7 +28,9 @@ function hasTransparency(hex: string): boolean {
 export default function Page() {
   // The user's choices.
   const [photo, setPhoto] = useState<File | null>(null);
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>("colour");
   const [color, setColor] = useState("#FF0066");
+  const [picture, setPicture] = useState<File | null>(null);
   const [shadow, setShadow] = useState<ShadowKind>("real");
   const [strength, setStrength] = useState(1);
 
@@ -60,14 +62,19 @@ export default function Page() {
       setError("Choose a photo first.");
       return;
     }
-    if (!isHexColor(color)) {
+    if (backgroundMode === "colour" && !isHexColor(color)) {
       setError("Use a hex colour such as #FF0066.");
+      return;
+    }
+    if (backgroundMode === "image" && !picture) {
+      setError("Choose a background picture first.");
       return;
     }
     setWorking(true);
     setError(null);
     try {
-      setResult(await changeBackground(photo, color, shadow, strength));
+      const background = backgroundMode === "image" && picture ? { picture } : { color };
+      setResult(await changeBackground(photo, background, shadow, strength));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Something went wrong. Try again.");
     } finally {
@@ -101,7 +108,10 @@ export default function Page() {
             <br />
             Keep the shadow.
           </h1>
-          <p>A person or product photo, any hex colour. The AI cuts out the subject, cleans the edges and keeps its shadow.</p>
+          <p>
+            A person or product photo, any hex colour or a background picture. The AI cuts out the subject, cleans the edges
+            and keeps its shadow.
+          </p>
         </section>
 
         <div className="workspace">
@@ -113,7 +123,14 @@ export default function Page() {
             }}
           >
             <PhotoDrop photo={photo} onChange={choosePhoto} />
-            <ColorPicker color={color} onChange={setColor} />
+            <BackgroundPicker
+              mode={backgroundMode}
+              onModeChange={setBackgroundMode}
+              color={color}
+              onColorChange={setColor}
+              picture={picture}
+              onPictureChange={setPicture}
+            />
             <ShadowControls shadow={shadow} strength={strength} onShadowChange={setShadow} onStrengthChange={setStrength} />
             <div>
               <button type="submit" className="button button-primary" aria-busy={working}>
@@ -129,7 +146,11 @@ export default function Page() {
 
           <section className="result" aria-label="Result" aria-busy={working}>
             {result && photoUrl ? (
-              <BeforeAfter before={photoUrl} after={result.url} transparent={hasTransparency(color)} />
+              <BeforeAfter
+                before={photoUrl}
+                after={result.url}
+                transparent={backgroundMode === "colour" && hasTransparency(color)}
+              />
             ) : (
               <div className="stage">
                 {photoUrl ? (
@@ -166,7 +187,11 @@ export default function Page() {
       <footer className="footer" id="cli">
         <span>Prefer the terminal? The command does the same:</span>
         <code>
-          uv run bgchange photo.jpg --color &quot;{color.trim() || "#FF0066"}&quot; --shadow {shadow}
+          uv run bgchange photo.jpg{" "}
+          {backgroundMode === "image"
+            ? `--background ${picture?.name ?? "picture.jpg"}`
+            : `--color "${color.trim() || "#FF0066"}"`}{" "}
+          --shadow {shadow}
           {strength !== 1 && shadow !== "none" ? ` --shadow-strength ${strength}` : ""}
         </code>
       </footer>
