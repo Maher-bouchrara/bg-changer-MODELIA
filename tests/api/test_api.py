@@ -145,3 +145,37 @@ def test_web_page_is_allowed_to_call_it(client):
 def test_interactive_docs_exist(client):
     assert client.get("/docs").status_code == 200
     assert "/api/change-background" in client.get("/openapi.json").json()["paths"]
+
+
+# --- a picture as the background -------------------------------------------------
+
+
+def post_with_picture(client, data=None, picture=None):
+    files = {
+        "image": ("shoe.png", png_bytes(), "image/png"),
+        "background": ("beach.png", picture if picture is not None else png_bytes((200, 100), (0, 0, 255)), "image/png"),
+    }
+    return client.post("/api/change-background", data=data or {"shadow": "none"}, files=files)
+
+
+def test_picture_background_gives_the_png(client):
+    response = post_with_picture(client)
+    assert response.status_code == 200
+    result = Image.open(io.BytesIO(response.content))
+    assert result.size == (80, 60) and result.mode == "RGB"
+    assert result.getpixel((2, 2)) == (0, 0, 255)  # outside FakeModel's square: the picture
+    assert 'filename="shoe_on_beach.png"' in response.headers["Content-Disposition"]
+
+
+def test_colour_and_picture_together_is_400(client):
+    response = post_with_picture(client, data={"color": "#FFFFFF"})
+    assert response.status_code == 400
+    assert "exactly one" in response.json()["error"]
+
+
+def test_broken_background_picture_is_415(client):
+    assert post_with_picture(client, picture=b"not an image").status_code == 415
+
+
+def test_too_large_background_picture_is_413(client):
+    assert post_with_picture(client, picture=b"x" * (SETTINGS.max_upload_bytes + 1)).status_code == 413
