@@ -1,4 +1,4 @@
-"""The `bgchange` command: put the subject of a photo on a new background colour.
+"""The `bgchange` command: put the subject of a photo on a new background colour or picture.
 
 Run (from the project folder, after `uv sync`):
 
@@ -7,9 +7,11 @@ Run (from the project folder, after `uv sync`):
     uv run bgchange photo.jpg --color "#00000000"                 # transparent cut-out
     uv run bgchange photo.jpg --color "#FF0066" -o result.png
     uv run bgchange photo.jpg --color "#FF0066" --model ben2
+    uv run bgchange photo.jpg --background beach.jpg               # a picture behind the subject
     uv run bgchange --help
 
-The result goes to outputs/<photo>_on_<HEX>.png unless -o is given.
+The result goes to outputs/<photo>_on_<HEX>.png (or _on_<picture name>.png)
+unless -o is given.
 
 This file only reads the options and prints; the work is done by
 change_background() in pipeline.py, the same function the API uses.
@@ -40,11 +42,18 @@ def build_parser() -> argparse.ArgumentParser:
     """All the command's options, with the help text shown by --help."""
     parser = argparse.ArgumentParser(
         prog="bgchange",
-        description="Put the subject of a photo (person or product) on a new background colour.",
+        description="Put the subject of a photo (person or product) on a new background colour or picture.",
     )
     parser.add_argument("image", type=Path, help="input photo (JPEG, PNG, WebP, ...)")
-    parser.add_argument(
-        "--color", required=True, help='new background as hex, e.g. "#FF0066" (keep the quotes in PowerShell)'
+    # The new background: a colour OR a picture, exactly one of the two.
+    background = parser.add_mutually_exclusive_group(required=True)
+    background.add_argument(
+        "--color", help='new background as hex, e.g. "#FF0066" (keep the quotes in PowerShell)'
+    )
+    background.add_argument(
+        "--background",
+        type=Path,
+        help="a picture to put behind the subject instead of a colour; scaled and cropped to the photo's size",
     )
     parser.add_argument(
         "--shadow",
@@ -79,6 +88,7 @@ def main(argv: list[str] | None = None) -> None:
         result = change_background(
             args.image,
             args.color,
+            background_image=args.background,
             model=args.model,
             shadow=args.shadow,
             shadow_strength=args.shadow_strength,
@@ -93,7 +103,7 @@ def main(argv: list[str] | None = None) -> None:
     # it, so versions made to compare sit side by side instead of overwriting.
     output = args.output
     if output is None:
-        output = default_output_path(args.image, result.color)
+        output = default_output_path(args.image, result.color or args.background)
         if args.no_edge_cleanup:
             output = output.with_stem(output.stem + "_no-cleanup")
         if args.shadow != SHADOW_KINDS[0]:
@@ -104,7 +114,10 @@ def main(argv: list[str] | None = None) -> None:
     print(f"image  : {args.image} ({result.image.width}x{result.image.height})")
     for note in result.notes:  # every fix the loader applied, e.g. EXIF rotation
         print(f"  note : {note}")
-    print(f"colour : {result.color.to_hex()}")
+    if result.color is not None:
+        print(f"colour : {result.color.to_hex()}")
+    else:
+        print(f"picture: {args.background} (scaled and cropped to {result.image.width}x{result.image.height})")
     print(f"model  : {args.model}, loaded in {t['load_model']:.1f}s, mask in {t['mask']:.2f}s")
     print(f"shadow : {args.shadow}, strength {args.shadow_strength:g}, {t['shadow']:.2f}s")
     print(f"blend  : {t['blend']:.2f}s")

@@ -103,3 +103,57 @@ def test_command_bad_colour_is_one_clear_line(photo_path):
 def test_command_refuses_strength_outside_0_1(photo_path):
     with pytest.raises(SystemExit):  # argparse exits with a usage message
         main([str(photo_path), "--color", "#FFFFFF", "--shadow-strength", "2"])
+
+
+# --- a picture as the background ---------------------------------------------
+
+
+@pytest.fixture
+def picture_path(tmp_path):
+    """A blue 200x100 picture: wider than the photo, so it is cropped."""
+    path = tmp_path / "beach.png"
+    Image.new("RGB", (200, 100), (0, 0, 255)).save(path)
+    return path
+
+
+def test_picture_background_fills_around_the_subject(photo_path, picture_path):
+    result = pipeline.change_background(photo_path, background_image=picture_path, shadow="none")
+    pixels = np.asarray(result.image)
+    assert result.image.size == (80, 60) and result.color is None
+    assert tuple(pixels[2, 2]) == (0, 0, 255)  # outside FakeModel's square: the picture
+    assert tuple(pixels[30, 40]) == (200, 30, 30)  # inside: the photo
+
+
+def test_picture_background_from_bytes_like_an_upload(photo_path, picture_path):
+    result = pipeline.change_background(photo_path.read_bytes(), background_image=picture_path.read_bytes())
+    assert result.image.size == (80, 60)
+
+
+def test_exactly_one_background_is_required(photo_path, picture_path):
+    with pytest.raises(ValueError, match="exactly one"):
+        pipeline.change_background(photo_path)
+    with pytest.raises(ValueError, match="exactly one"):
+        pipeline.change_background(photo_path, "#FFFFFF", background_image=picture_path)
+
+
+def test_broken_background_picture_fails_before_the_model(photo_path, tmp_path, monkeypatch):
+    def no_model(name, device):
+        raise AssertionError("the model must not be loaded for a broken background")
+
+    monkeypatch.setattr(pipeline, "get_segmenter", no_model)
+    broken = tmp_path / "broken.jpg"
+    broken.write_bytes(b"not an image")
+    with pytest.raises(ImageLoadError):
+        pipeline.change_background(photo_path, background_image=broken)
+
+
+def test_command_background_picture_default_name(photo_path, picture_path, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    main([str(photo_path), "--background", str(picture_path)])
+    assert (tmp_path / "outputs" / "shoe_on_beach.png").exists()
+    assert "picture:" in capsys.readouterr().out
+
+
+def test_command_refuses_colour_and_picture_together(photo_path, picture_path):
+    with pytest.raises(SystemExit):  # argparse: the two options are mutually exclusive
+        main([str(photo_path), "--color", "#FFFFFF", "--background", str(picture_path)])
