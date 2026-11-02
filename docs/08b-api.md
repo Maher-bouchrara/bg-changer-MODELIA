@@ -34,7 +34,8 @@ A form with a file (`multipart/form-data`), like any web upload:
 | Field | Required | Values | Default |
 |---|---|---|---|
 | `image` | yes | the photo: JPEG, PNG, WebP, ... up to 20 MB | |
-| `color` | yes | `#RGB`, `#RRGGBB`, `#RRGGBBAA`, e.g. `#FF0066` | |
+| `color` | one of these two | `#RGB`, `#RRGGBB`, `#RRGGBBAA`, e.g. `#FF0066` | |
+| `background` | | a picture (file) to put behind the subject instead of a colour ([step 11](11-image-background.md)) | |
 | `shadow` | no | `real`, `fake`, `mix`, `none` | `real` |
 | `shadow_strength` | no | 0 to 1 | 1 |
 
@@ -51,7 +52,7 @@ The answer is the **PNG itself** (`Content-Type: image/png`), with these headers
 
 | Code | When | Example message |
 |---|---|---|
-| 400 | bad colour, bad option, missing field | `"blue" is not a hex colour: ...` |
+| 400 | bad colour, bad option, missing field, both or neither of `color` / `background` | `"blue" is not a hex colour: ...` |
 | 413 | file larger than the limit | `The file is larger than 20 MB.` |
 | 415 | not a readable image | `This file is not a readable image. Supported: JPEG, PNG, ...` |
 | 503 | model not downloaded on the server | `Model 'birefnet' is not downloaded ...` |

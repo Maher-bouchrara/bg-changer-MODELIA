@@ -53,7 +53,9 @@ frontend/
 ├── app/globals.css             all the styles, with the colour and size tokens at the top
 ├── components/
 │   ├── PhotoDrop.tsx           01: drop or browse a photo (checks type and 20 MB)
-│   ├── ColorPicker.tsx         02: swatches, hex box, the browser's colour picker
+│   ├── ImageDrop.tsx           the drop box, shared by 01 and 02 (step 11)
+│   ├── BackgroundPicker.tsx    02: COLOUR / IMAGE (step 11)
+│   ├── ColorPicker.tsx         02 colour: swatches, hex box, the browser's colour picker
 │   ├── ShadowControls.tsx      03: real / fake / mix / none + strength
 │   ├── BeforeAfter.tsx         the comparison slider
 │   └── ApiStatus.tsx           a banner with the fix when the API isn't usable

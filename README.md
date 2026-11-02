@@ -13,6 +13,7 @@ uv run bgchange photo.jpg --color "#FF0066"
 - **Clean edges:** no halo of the old background around hair or fur.
 - **Shadow:** the photo's real shadow (default), a computed one, both, or none.
 - **Any hex colour**, including transparent (`#00000000` gives a cut-out PNG).
+- **Or a picture** as the background (`--background table.jpg`), scaled and cropped to fit.
 
 ---
 
@@ -42,7 +43,8 @@ The result is saved as `outputs/photo_on_FF0066.png`, same size as the photo.
 
 | Option | What it does | Default |
 |---|---|---|
-| `--color` | New background: `#RGB`, `#RRGGBB` or `#RRGGBBAA` (keep the quotes) | required |
+| `--color` | New background: `#RGB`, `#RRGGBB` or `#RRGGBBAA` (keep the quotes) | this or `--background` |
+| `--background` | A picture instead of a colour, scaled and cropped to the photo's size | this or `--color` |
 | `--shadow` | `real` (the photo's own), `fake` (computed), `mix` (both), `none` | `real` |
 | `--shadow-strength` | `0` (none) to `1` (as in the photo) | `1` |
 | `-o` | Output file | `outputs/<photo>_on_<HEX>.png` |
@@ -53,6 +55,7 @@ The result is saved as `outputs/photo_on_FF0066.png`, same size as the photo.
 ```bash
 uv run bgchange shoe.jpg --color "#E4E0D8" --shadow mix --shadow-strength 0.7
 uv run bgchange portrait.jpg --color "#00000000" -o cutout.png
+uv run bgchange mug.jpg --background table.jpg
 uv run bgchange --help
 ```
 
@@ -74,7 +77,7 @@ uv run bgchange-api
 | Route | What it does |
 |---|---|
 | `GET /api/health` | Is the API up, is the model loaded? |
-| `POST /api/change-background` | Photo + colour (+ shadow options) → the PNG |
+| `POST /api/change-background` | Photo + colour or background picture (+ shadow options) → the PNG |
 
 Interactive documentation: <http://127.0.0.1:8000/docs>. Details: [docs/08b-api.md](docs/08b-api.md).
 
@@ -146,6 +149,7 @@ Each step has its own page in [docs/](docs/README.md): what was built, a diagram
 | 8b | The web API | [08b](docs/08b-api.md) |
 | 9 | The web page | [09](docs/09-web-page.md) |
 | 10 | Docker | [10](docs/10-docker.md) |
+| 11 | A picture as the background (extra) | [11](docs/11-image-background.md) |
 
 ## Limitations
 
@@ -153,6 +157,7 @@ Each step has its own page in [docs/](docs/README.md): what was built, a diagram
 - **Real shadow on busy photos:** small smudges of floor texture can remain near the feet; `--shadow fake` or `none` is cleaner there.
 - **Edge cleanup** can add a soft glow where the AI's mask is blurry; `--no-edge-cleanup` turns it off.
 - **CPU is slow** (~20 s per photo vs ~2 s on a GPU). Docker runs on the CPU.
+- **Background picture:** the subject keeps its own light; a studio photo on a sunny or angled scene looks pasted. A simple background lit like the photo works best.
 - **RMBG-2.0** is non-commercial (CC BY-NC 4.0): available, never the default.
 
 ## Time spent and use of AI
