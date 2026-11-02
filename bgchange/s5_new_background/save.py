@@ -1,6 +1,7 @@
 """Where the result goes, and how it is written.
 
-    photo.jpg + #FF0066  ->  outputs/photo_on_FF0066.png
+    photo.jpg + #FF0066    ->  outputs/photo_on_FF0066.png
+    photo.jpg + beach.jpg  ->  outputs/photo_on_beach.png
 
 Always PNG: it is lossless, so the soft edges the model worked for are not
 blurred by JPEG compression, and it can hold transparency.
@@ -18,9 +19,11 @@ from bgchange.s2_read_color import Color
 OUTPUT_DIR = Path("outputs")
 
 
-def default_output_path(photo_path: Path, color: Color) -> Path:
-    """outputs/<photo name>_on_<HEX>.png, so different colours never overwrite each other."""
-    return OUTPUT_DIR / f"{Path(photo_path).stem}_on_{color.to_hex().lstrip('#')}.png"
+def default_output_path(photo_path: Path, background: Color | Path) -> Path:
+    """outputs/<photo name>_on_<HEX>.png, or _on_<picture name>.png for a background
+    picture, so different backgrounds never overwrite each other."""
+    name = background.to_hex().lstrip("#") if isinstance(background, Color) else Path(background).stem
+    return OUTPUT_DIR / f"{Path(photo_path).stem}_on_{name}.png"
 
 
 def save_png(image: Image.Image, path: Path) -> Path:
